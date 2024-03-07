@@ -332,7 +332,7 @@ class Base_DatasetFromList(data.Dataset):
             bg_img = np.zeros((H, W, 3), dtype=np.uint8)
             logger.warning("bad background image: {}".format(filename))
 
-        mask = im_mask.copy().astype(np.bool)
+        mask = im_mask.copy().astype(bool)
         if cfg.INPUT.get("TRUNCATE_FG", False):
             nonzeros = np.nonzero(mask.astype(np.uint8))
             x1, y1 = np.min(nonzeros, axis=1)
