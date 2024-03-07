@@ -39,12 +39,13 @@ def load_meshes_sixd(obj_files, vertex_tmp_store_folder, recalculate_normals=Fal
                 normals = np.array(model["normals"]).astype(np.float32)
             faces = np.array(model["faces"]).astype(np.uint32)
             if "colors" in model:
+                print("model has colors")
                 colors = np.array(model["colors"]).astype(np.uint32)
                 attributes.append((vertices, normals, colors, faces))
             else:
                 attributes.append((vertices, normals, faces))
-        os.makedirs(vertex_tmp_store_folder, exist_ok=True)
-        np.save(out_file, attributes)
+        os.makedirs(vertex_tmp_store_folder, exist_ok=True) 
+        #np.save(out_file, attributes)
         return attributes
 
 
