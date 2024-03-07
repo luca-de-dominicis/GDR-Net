@@ -400,7 +400,8 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
 
                 roi_cls = inst_infos["category_id"]
                 roi_infos["roi_cls"].append(roi_cls)
-                roi_infos["score"].append(inst_infos["score"])
+                score = inst_infos.get("score", 1.0)
+                roi_infos["score"].append(score)
 
                 # extent
                 roi_extent = self._get_extents(dataset_name)[roi_cls]
@@ -467,7 +468,7 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
         xyz = np.zeros((im_H, im_W, 3), dtype=np.float32)
         xyz[y1 : y2 + 1, x1 : x2 + 1, :] = xyz_crop
         # NOTE: full mask
-        mask_obj = ((xyz[:, :, 0] != 0) | (xyz[:, :, 1] != 0) | (xyz[:, :, 2] != 0)).astype(np.bool).astype(np.float32)
+        mask_obj = ((xyz[:, :, 0] != 0) | (xyz[:, :, 1] != 0) | (xyz[:, :, 2] != 0)).astype(bool).astype(np.float32)
         if cfg.INPUT.SMOOTH_XYZ:
             xyz = self.smooth_xyz(xyz)
 
@@ -679,6 +680,8 @@ def build_gdrn_train_loader(cfg, dataset_names):
     )
 
     dataset_dicts = filter_invalid_in_dataset_dicts(dataset_dicts, visib_thr=cfg.DATALOADER.FILTER_VISIB_THR)
+    with open("dataset_dicts.txt", "w") as f:
+            f.write(str(dataset_dicts))
 
     dataset = GDRN_DatasetFromList(cfg, split="train", lst=dataset_dicts, copy=False)
 
