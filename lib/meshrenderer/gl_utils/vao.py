@@ -21,16 +21,16 @@ class VAO(object):
                 attribtype = attrib[2]
                 normalized = attrib[3]
                 relativeoffset = attrib[4]
-                glVertexArrayAttribFormat(self.__id, attribindex, size, attribtype, normalized, relativeoffset)
-                glVertexArrayAttribBinding(self.__id, attribindex, i)
-                glEnableVertexArrayAttrib(self.__id, attribindex)
-            glVertexArrayVertexBuffer(self.__id, i, vbo.id, offset, stride)
+                glVertexArrayAttribFormat(self.__id.item(), attribindex, size, attribtype, normalized, relativeoffset)
+                glVertexArrayAttribBinding(self.__id.item(), attribindex, i)
+                glEnableVertexArrayAttrib(self.__id.item(), attribindex)
+            glVertexArrayVertexBuffer(self.__id.item(), i, vbo.id.item(), offset, stride)
             i += 1
         if ebo != None:
             if isinstance(ebo, EBO):
-                glVertexArrayElementBuffer(self.__id, ebo.id)
+                glVertexArrayElementBuffer(self.__id.item(), ebo.id.item())
             else:
                 ValueError("Invalid EBO type.")
 
     def bind(self):
-        glBindVertexArray(self.__id)
+        glBindVertexArray(self.__id.item())
