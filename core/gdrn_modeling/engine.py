@@ -40,6 +40,9 @@ from .gdrn_evaluator import gdrn_inference_on_dataset, GDRN_Evaluator
 from .gdrn_custom_evaluator import GDRN_EvaluatorCustom
 import ref
 
+# for tensorboard
+from torch.utils.tensorboard import SummaryWriter
+
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +145,9 @@ class GDRN_Lite(LightningLite):
         return results
 
     def do_train(self, cfg, args, model, optimizer, resume=False):
+        tbwriter = SummaryWriter() # for tensorboard
         model.train()
+    
 
         # some basic settings =========================
         dataset_meta = MetadataCatalog.get(cfg.DATASETS.TRAIN[0])
@@ -272,6 +277,7 @@ class GDRN_Lite(LightningLite):
 
                 loss_dict_reduced = {k: v.item() for k, v in comm.reduce_dict(loss_dict).items()}
                 losses_reduced = sum(loss for loss in loss_dict_reduced.values())
+                tbwriter.add_scalar("Loss/train", losses, epoch) # for tensorboard
                 if self.is_global_zero:
                     storage.put_scalars(total_loss=losses_reduced, **loss_dict_reduced)
 
@@ -331,3 +337,7 @@ class GDRN_Lite(LightningLite):
                     if hasattr(optimizer, "consolidate_state_dict"):  # for ddp_sharded
                         optimizer.consolidate_state_dict()
                 periodic_checkpointer.step(iteration, epoch=epoch)
+
+                 # for tensorboard
+                tbwriter.flush()
+                tbwriter.close()
