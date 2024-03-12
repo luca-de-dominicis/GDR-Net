@@ -47,7 +47,7 @@ model_paths = [osp.join(epose_model_dir, f"obj_{obj_id:06d}.ply") for obj_id in 
 texture_paths = None
 
 scenes = [i for i in range(0, 1)]
-xyz_root = osp.normpath(osp.join(PROJ_ROOT, "datasets/custom/epose/train_pbr/xyz_crop"))
+xyz_root = osp.normpath(osp.join(PROJ_ROOT, "datasets/custom/epose/test/xyz_crop"))
 
 K = np.array([[197.5, 0.0, 320.0], [0.0, 148.17, 240.0], [0.0, 0.0, 1.0]])
 

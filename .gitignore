@@ -48,3 +48,6 @@ dist/
 
 # project dirs
 /models
+
+# Runs for tensorboard
+runs
