@@ -1,0 +1,9 @@
+lm:
+  path: /data/repos/GDR-Net/output/gdrn/lm
+  base_config: a6_cPnP_lm13_
+  test_ds: lm_13_test
+
+lmo:
+  path: /data/repos/GDR-Net/output/gdrn/lmo
+  base_config: a6_cPnP_AugAAETrunc_BG0.5_lmo_real_pbr0.1_40e_
+  test_ds: lmo_test
