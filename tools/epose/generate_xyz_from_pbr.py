@@ -18,8 +18,6 @@ from lib.vis_utils.image import grid_show
 from lib.pysixd import misc
 from lib.utils.mask_utils import mask2bbox_xyxy
 
-
-
 idx2class = {
     1: "chiave_candela_19",
     2: "ugello_l80_90",
@@ -47,7 +45,7 @@ model_paths = [osp.join(epose_model_dir, f"obj_{obj_id:06d}.ply") for obj_id in 
 texture_paths = None
 
 scenes = [i for i in range(0, 1)]
-xyz_root = osp.normpath(osp.join(PROJ_ROOT, "datasets/custom/epose/test/xyz_crop"))
+xyz_root = osp.normpath(osp.join(PROJ_ROOT, "datasets/custom/epose/train_pbr/xyz_crop"))
 
 K = np.array([[197.5, 0.0, 320.0], [0.0, 148.17, 240.0], [0.0, 0.0, 1.0]])
 
