@@ -10,6 +10,7 @@ parser.add_argument("--path", help="path to the epose dataset", type=str)
 
 args = parser.parse_args()
 assert args.path is not None or args.path != "", "Please specify the path to the epose dataset"
+
 image_set_path = args.path + "/image_set"
 images_path = args.path + "/test/000001/rgb/"
 
@@ -30,11 +31,14 @@ if not os.path.exists("image_set"):
 
 
 original_list = os.listdir(images_path) # lists all the images in the dataset
+original_list = [name[:-4] for name in original_list]
 train_list, test_list = train_test_list(original_list, ratio=0.2)
+train_list = sorted(train_list)
+test_list = sorted(test_list)
 
 for class_name in class_names:
     for split in splits:
-        with open(f"{imageset_path}/{class_name}_{split}.txt", "w") as f:
+        with open(f"{image_set_path}/{class_name}_{split}.txt", "w") as f:
             if split == "all":
                 f.write("\n".join(original_list))
             elif split == "train":
