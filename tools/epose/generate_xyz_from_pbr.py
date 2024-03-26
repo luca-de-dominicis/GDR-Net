@@ -47,7 +47,7 @@ texture_paths = None
 scenes = [i for i in range(0, 1)]
 xyz_root = osp.normpath(osp.join(PROJ_ROOT, "datasets/custom/epose/train_pbr/xyz_crop"))
 
-K = np.array([[197.5, 0.0, 320.0], [0.0, 148.17, 240.0], [0.0, 0.0, 1.0]])
+K = np.array([[320, 0.0, 320.0], [0.0, 320, 240.0], [0.0, 0.0, 1.0]])
 
 def normalize_to_01(img):
     if img.max() != img.min():
