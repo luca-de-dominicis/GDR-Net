@@ -114,7 +114,7 @@ def filter_empty_dets(dataset_dicts):
 
 
 def load_detections_into_dataset(
-    dataset_name, dataset_dicts, det_file, top_k_per_obj=1, score_thr=0.0, train_objs=None
+    dataset_name, dataset_dicts, det_file, top_k_per_obj=5, score_thr=0.0, train_objs=None
 ):
     """Load test detections into the dataset.
 
@@ -168,15 +168,16 @@ def load_detections_into_dataset(
                 "model_info": models_info[str(obj_id)],  # TODO: maybe just load this in the main function
             }
             obj_annotations[obj_name].append(inst)
-        for obj, cur_annos in obj_annotations.items():
-            scores = [ann["score"] for ann in cur_annos]
-            sel_annos = [ann for _, ann in sorted(zip(scores, cur_annos), key=lambda pair: pair[0], reverse=True)][
-                :top_k_per_obj
-            ]
-            annotations.extend(sel_annos)
+        # for obj, cur_annos in obj_annotations.items():
+        #     scores = [ann["score"] for ann in cur_annos]
+        #     sel_annos = [ann for _, ann in sorted(zip(scores, cur_annos), key=lambda pair: pair[0], reverse=True)][
+        #         :top_k_per_obj
+        #     ]
+        # Sort obj_annotations by bbox
+        obj_annotations[obj_name].sort(key=lambda x: (x["bbox_est"][0] + x["bbox_est"][1]) / 2.0, reverse=True)
+        annotations.extend(obj_annotations[obj_name])
         # NOTE: maybe [], no detections
         record["annotations"] = annotations
-
     return dataset_dicts
 
 
