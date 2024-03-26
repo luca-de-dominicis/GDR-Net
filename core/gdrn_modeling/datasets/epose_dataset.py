@@ -163,8 +163,11 @@ class Epose_Dataset(object):
 
                     mask_file = osp.join(scene_root, "mask/{:06d}_{:06d}.png".format(int_im_id, anno_i))
                     mask_visib_file = osp.join(scene_root, "mask_visib/{:06d}_{:06d}.png".format(int_im_id, anno_i))
-                    assert osp.exists(mask_file), mask_file
-                    assert osp.exists(mask_visib_file), mask_visib_file
+                    if len(gt_dict[str_im_id]) != 5 and not osp.exists(mask_file):
+                        continue
+                    else:
+                        assert osp.exists(mask_file), mask_file
+                        assert osp.exists(mask_visib_file), mask_visib_file
                     # load mask visib  TODO: load both mask_visib and mask_full
                     mask_single = mmcv.imread(mask_visib_file, "unchanged")
                     area = mask_single.sum()
