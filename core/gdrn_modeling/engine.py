@@ -36,7 +36,7 @@ from core.utils.utils import get_emb_show
 from core.utils.data_utils import denormalize_image
 from .data_loader import build_gdrn_train_loader, build_gdrn_test_loader
 from .engine_utils import batch_data, get_out_coor, get_out_mask
-from .gdrn_evaluator import gdrn_inference_on_dataset, GDRN_Evaluator
+from .gdrn_evaluator import gdrn_inference_on_dataset, GDRN_Evaluator, gdrn_inference
 from .gdrn_custom_evaluator import GDRN_EvaluatorCustom
 import ref
 
@@ -135,9 +135,13 @@ class GDRN_Lite(LightningLite):
                 evaluator = self.get_evaluator(
                     cfg, dataset_name, osp.join(cfg.OUTPUT_DIR, f"inference_{model_name}", dataset_name)
                 )
+            #print(evaluator.train_objs)
             data_loader = build_gdrn_test_loader(cfg, dataset_name, train_objs=evaluator.train_objs)
             data_loader = self.setup_dataloaders(data_loader, replace_sampler=False, move_to_device=False)
-            results_i = gdrn_inference_on_dataset(cfg, model, data_loader, evaluator, amp_test=cfg.TEST.AMP_TEST)
+            if cfg.TEST.INFERENCE:
+                results_i = gdrn_inference(cfg, model, data_loader, amp_test=cfg.TEST.AMP_TEST)
+            else:
+                results_i = gdrn_inference_on_dataset(cfg, model, data_loader, evaluator, amp_test=cfg.TEST.AMP_TEST)
             results[dataset_name] = results_i
 
         if len(results) == 1:
