@@ -5,13 +5,13 @@ import os
 import os.path as osp
 import mmcv
 from detectron2.data import DatasetCatalog, MetadataCatalog
-from .datasets import lm_syn_imgn, lm_dataset_d2, lm_pbr, lm_blender, ycbv_pbr, ycbv_d2, ycbv_bop_test, epose_dataset
+from .datasets import lm_syn_imgn, lm_dataset_d2, lm_pbr, lm_blender, ycbv_pbr, ycbv_d2, ycbv_bop_test, epose_dataset, epose_dataset_real_inf
 
 
 cur_dir = osp.dirname(osp.abspath(__file__))
 # from lib.utils.utils import iprint
 __all__ = ["register_dataset", "register_datasets", "register_datasets_in_cfg", "get_available_datasets"]
-_DSET_MOD_NAMES = ["lm_syn_imgn", "lm_dataset_d2", "lm_pbr", "lm_blender", "ycbv_pbr", "ycbv_d2", "ycbv_bop_test", "epose_dataset"]
+_DSET_MOD_NAMES = ["lm_syn_imgn", "lm_dataset_d2", "lm_pbr", "lm_blender", "ycbv_pbr", "ycbv_d2", "ycbv_bop_test", "epose_dataset", "epose_dataset_real_inf"]
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,7 @@ def register_datasets_in_cfg(cfg):
             # NOTE: it is better to let all datasets pre-refined
             for _mod_name in _DSET_MOD_NAMES:
                 if name in get_available_datasets(_mod_name):
+                    print(_mod_name)
                     register_dataset(_mod_name, name, data_cfg=None)
                     registered = True
                     break
