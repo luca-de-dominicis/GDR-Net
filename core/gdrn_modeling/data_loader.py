@@ -312,6 +312,7 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
         dataset_name = dataset_dict["dataset_name"]
 
         image = read_image_cv2(dataset_dict["file_name"], format=self.img_format)
+    
         # should be consistent with the size in dataset_dict
         utils.check_image_size(dataset_dict, image)
         im_H_ori, im_W_ori = image.shape[:2]
@@ -344,6 +345,7 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
 
         # other transforms (mainly geometric ones);
         # for 6d pose task, flip is now allowed in general except for some 2d keypoints methods
+
         image, transforms = T.apply_augmentations(self.augmentation, image)
         im_H, im_W = image_shape = image.shape[:2]  # h, w
 
@@ -386,7 +388,7 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
             # TODO: how to handle image without detections
             #   filter those when load annotations or detections, implement a function for this
             # "annotations" means detections
-            for inst_i, inst_infos in enumerate(dataset_dict["annotations"]):
+            for inst_i, inst_infos in enumerate(dataset_dict["annotations"]):                                                                                                                                                         
                 # inherent image-level infos
                 roi_infos["scene_im_id"].append(dataset_dict["scene_im_id"])
                 roi_infos["file_name"].append(dataset_dict["file_name"])
@@ -479,6 +481,7 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
         inst_infos["bbox"] = [x1, y1, x2, y2]
         inst_infos["bbox_mode"] = BoxMode.XYXY_ABS
 
+
         # USER: Implement additional transformations if you have other types of data
         # inst_infos.pop("segmentation")  # NOTE: use mask from xyz
         anno = transform_instance_annotations(inst_infos, transforms, image_shape, keypoint_hflip_indices=None)
@@ -532,6 +535,36 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
         ## roi_xyz ----------------------------------------------------
         roi_xyz = crop_resize_by_warp_affine(xyz, bbox_center, scale, out_res, interpolation=mask_xyz_interp)
 
+         # Show image with bbox
+        # if cfg.DATASETS.SHOW and dataset_dict['file_name'].split("/")[-1] == "000020.png":
+        #     img = image.copy()
+        #     x1, y1, x2, y2 = anno["bbox"]
+        #     cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        #     x, y, x3, y3 = inst_infos["bbox"]
+        #     cv2.rectangle(img, (x, y), (x3, y3), (0, 255, 255), 2)
+        #     cv2.imshow("img", img)
+        #     cv2.waitKey(0)
+            # Save the image with bbox
+            # cv2.imwrite(f"test_pic/img/{roi_cls}_{dataset_dict['inst_id']}.png", img)
+            # # Save the roi_img
+            # cv2.imwrite(f"test_pic/roi/{roi_cls}_{dataset_dict['inst_id']}.png", (roi_img.transpose(1, 2, 0) * 255).astype(np.uint8))
+            # # Save the mask
+            # cv2.imwrite(f"test_pic/mask/{roi_cls}_{dataset_dict['inst_id']}.png", (roi_mask_obj * 255).astype(np.uint8))
+            # # Visualize the mask visib
+            # cv2.imwrite(f"test_pic/maskvisib/{roi_cls}_{dataset_dict['inst_id']}.png", (roi_mask_visib * 255).astype(np.uint8))
+        if cfg.DATASETS.SHOW and dataset_dict['file_name'].split("/")[-1] == "000020.png":
+            #print(scale)
+            cx, cy = bbox_center
+            img = cv2.imread(f"test_pic/img/{roi_cls}_{dataset_dict['inst_id']}.png")
+            w,h = scale, scale
+            # Convert to integer
+            top_left = (int(cx - w / 2), int(cy - h / 2))
+            bottom_right = (int(cx + w / 2), int(cy + h / 2))
+
+            cv2.rectangle(img, top_left, bottom_right, (0, 255, 255), 2)
+            # Write the image with bbox
+            cv2.imshow("img", img)
+            cv2.imwrite(f"test_pic/roi_bbox/{roi_cls}_{dataset_dict['inst_id']}.png", img)
         # region label
         if r_head_cfg.NUM_REGIONS > 1:
             fps_points = self._get_fps_points(dataset_name)[roi_cls]
@@ -543,7 +576,7 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
         roi_xyz[0] = roi_xyz[0] / roi_extent[0] + 0.5
         roi_xyz[1] = roi_xyz[1] / roi_extent[1] + 0.5
         roi_xyz[2] = roi_xyz[2] / roi_extent[2] + 0.5
-
+      
         if ("CE" in r_head_cfg.XYZ_LOSS_TYPE) or ("cls" in cfg.MODEL.CDPN.NAME):  # convert target to int for cls
             # assume roi_xyz has been normalized in [0, 1]
             roi_xyz_bin = np.zeros_like(roi_xyz)
@@ -680,8 +713,6 @@ def build_gdrn_train_loader(cfg, dataset_names):
     )
 
     dataset_dicts = filter_invalid_in_dataset_dicts(dataset_dicts, visib_thr=cfg.DATALOADER.FILTER_VISIB_THR)
-    with open("dataset_dicts.txt", "w") as f:
-            f.write(str(dataset_dicts))
 
     dataset = GDRN_DatasetFromList(cfg, split="train", lst=dataset_dicts, copy=False)
 
