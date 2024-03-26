@@ -23,14 +23,13 @@ custom_root = osp.join(data_root, "custom/")
 dataset_root = osp.join(custom_root, "epose")
 train_dir = osp.join(dataset_root, "train")
 test_dir = osp.join(dataset_root, "test")
+real_dir = osp.join(dataset_root, "real")
 model_dir = osp.join(dataset_root, "models")
 vertex_scale = 0.001
 model_eval_dir = osp.join(dataset_root, "models_eval")
 # scaled models (.obj)
 model_scaled_dir = osp.join(dataset_root, "models_scaled")
 model_scaled_simple_dir = osp.join(dataset_root, "models_scaled_f5k")
-
-train_synt_blender_dir = osp.join(dataset_root, "epose_blender/")
 
 # object info
 objects = [
@@ -67,7 +66,7 @@ height = 480
 zNear = 0.25
 zFar = 6.0
 center = (height / 2, width / 2)
-camera_matrix = np.array([[197.5, 0.0, 320.0], [0.0, 148.17, 240.0], [0.0, 0.0, 1.0]])
+camera_matrix = np.array([[320, 0.0, 320.0], [0.0, 320, 240.0], [0.0, 0.0, 1.0]])
 
 
 
