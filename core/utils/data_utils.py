@@ -76,6 +76,21 @@ def crop_resize_by_d2_roialign(
         result = result.transpose(1, 2, 0)
     return result
 
+"""
+his function performs the cropping and resizing of an image based on the specified center, scale, output size, and rotation angle. It also allows for specifying the interpolation method used during the resizing process.
+
+Parameters:
+img: The input image to transform.
+center: The center point (cx, cy) around which the image will be cropped and/or rotated.
+scale: A tuple (w, h) or a single value defining the scaling factor. If a single value is provided, it's assumed to be the same for both width and height.
+output_size: The size (w, h) of the output image. If a single integer is given, it is used for both dimensions, resulting in a square output.
+rot: The rotation angle in degrees. Default is 0, meaning no rotation.
+interpolation: The interpolation method used in the resizing process. Default is cv2.INTER_LINEAR.
+Process:
+It adjusts the scale and output_size parameters to ensure they are in tuple form (w, h).
+Calls get_affine_transform to generate the affine transformation matrix based on the specified parameters.
+Uses cv2.warpAffine with the transformation matrix to perform the actual image transformation, resulting in the cropped, resized, and optionally rotated image.
+"""
 
 def crop_resize_by_warp_affine(img, center, scale, output_size, rot=0, interpolation=cv2.INTER_LINEAR):
     """
@@ -92,6 +107,20 @@ def crop_resize_by_warp_affine(img, center, scale, output_size, rot=0, interpola
 
     return dst_img
 
+"""
+This function calculates the affine transformation matrix required to perform the desired transformations on the image.
+
+Parameters:
+center, scale, rot, output_size: Same as in crop_resize_by_warp_affine.
+shift: An optional shift to apply before scaling, useful for fine adjustments. Defaults to [0, 0].
+inv: If True, calculates the inverse affine transformation. This could be useful for reversing the transformation.
+Process:
+Converts input parameters to the appropriate data types and formats.
+Calculates the rotation in radians and determines the direction vectors before and after rotation.
+Sets up source (src) and destination (dst) points for the affine transformation. These are based on the center, scale, and rotation parameters, as well as the output size.
+If inv is True, calculates the affine transform matrix for the inverse transformation, otherwise calculates the normal affine transform matrix.
+This matrix is then used to map the source points to the destination points, effectively performing the desired transformation when applied to an image.
+"""
 
 def get_affine_transform(center, scale, rot, output_size, shift=np.array([0, 0], dtype=np.float32), inv=False):
     """
