@@ -32,7 +32,7 @@ if __name__ == '__main__':
     serializable_dict = {key: convert_to_serializable(dict(value)) for key, value in preds_pkl.items()}
 
 
-    with open(args.path.split('.')[0] + '.json', 'w') as f:
+    with open(args.path.split('.pkl')[0] + '.json', 'w') as f:
         json.dump(serializable_dict, f)
 
     

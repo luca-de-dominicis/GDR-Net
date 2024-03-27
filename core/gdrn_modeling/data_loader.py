@@ -536,35 +536,29 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
         roi_xyz = crop_resize_by_warp_affine(xyz, bbox_center, scale, out_res, interpolation=mask_xyz_interp)
 
          # Show image with bbox
-        # if cfg.DATASETS.SHOW and dataset_dict['file_name'].split("/")[-1] == "000020.png":
+        # print(dataset_dict['file_name'].split("/")[-1])
+        # if cfg.DATASETS.SHOW and dataset_dict['file_name'].split("/")[-1] == "000005_0-color.png":
+        #     n = dataset_dict['file_name'].split("/")[-1].split('.')[0].lstrip('0')
         #     img = image.copy()
         #     x1, y1, x2, y2 = anno["bbox"]
         #     cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        #     x, y, x3, y3 = inst_infos["bbox"]
-        #     cv2.rectangle(img, (x, y), (x3, y3), (0, 255, 255), 2)
-        #     cv2.imshow("img", img)
-        #     cv2.waitKey(0)
-            # Save the image with bbox
-            # cv2.imwrite(f"test_pic/img/{roi_cls}_{dataset_dict['inst_id']}.png", img)
-            # # Save the roi_img
-            # cv2.imwrite(f"test_pic/roi/{roi_cls}_{dataset_dict['inst_id']}.png", (roi_img.transpose(1, 2, 0) * 255).astype(np.uint8))
-            # # Save the mask
-            # cv2.imwrite(f"test_pic/mask/{roi_cls}_{dataset_dict['inst_id']}.png", (roi_mask_obj * 255).astype(np.uint8))
-            # # Visualize the mask visib
-            # cv2.imwrite(f"test_pic/maskvisib/{roi_cls}_{dataset_dict['inst_id']}.png", (roi_mask_visib * 255).astype(np.uint8))
-        if cfg.DATASETS.SHOW and dataset_dict['file_name'].split("/")[-1] == "000020.png":
-            #print(scale)
-            cx, cy = bbox_center
-            img = cv2.imread(f"test_pic/img/{roi_cls}_{dataset_dict['inst_id']}.png")
-            w,h = scale, scale
-            # Convert to integer
-            top_left = (int(cx - w / 2), int(cy - h / 2))
-            bottom_right = (int(cx + w / 2), int(cy + h / 2))
+        #     #Save the image with bbox
+        #     cv2.imwrite(f"test_pic_lm/img/{n}_{roi_cls}_{dataset_dict['inst_id']}.png", img)
+        #     # Save the roi_img
+        #     cv2.imwrite(f"test_pic_lm/roi/{n}_{roi_cls}_{dataset_dict['inst_id']}.png", (roi_img.transpose(1, 2, 0) * 255).astype(np.uint8))
+        #     # Save the mask
+        #     cv2.imwrite(f"test_pic_lm/mask/{n}_{roi_cls}_{dataset_dict['inst_id']}.png", (roi_mask_obj * 255).astype(np.uint8))
+        #     # Visualize the mask visib
+        #     cv2.imwrite(f"test_pic_lm/maskvisib/{n}_{roi_cls}_{dataset_dict['inst_id']}.png", (roi_mask_visib * 255).astype(np.uint8))
+        #     cx, cy = bbox_center
+        #     w,h = scale, scale
+        #     # Convert to integer
+        #     top_left = (int(cx - w / 2), int(cy - h / 2))
+        #     bottom_right = (int(cx + w / 2), int(cy + h / 2))
 
-            cv2.rectangle(img, top_left, bottom_right, (0, 255, 255), 2)
-            # Write the image with bbox
-            cv2.imshow("img", img)
-            cv2.imwrite(f"test_pic/roi_bbox/{roi_cls}_{dataset_dict['inst_id']}.png", img)
+        #     cv2.rectangle(img, top_left, bottom_right, (0, 255, 255), 2)
+        #     # Write the image with bbox
+        #     cv2.imwrite(f"test_pic_lm/roi_bbox/{n}_{roi_cls}_{dataset_dict['inst_id']}.png", img)
         # region label
         if r_head_cfg.NUM_REGIONS > 1:
             fps_points = self._get_fps_points(dataset_name)[roi_cls]

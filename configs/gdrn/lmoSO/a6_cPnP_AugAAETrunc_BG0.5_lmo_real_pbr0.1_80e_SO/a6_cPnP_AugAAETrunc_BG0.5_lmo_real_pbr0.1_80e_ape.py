@@ -47,6 +47,7 @@ DATASETS = dict(
     DET_FILES_TEST=(
         "datasets/BOP_DATASETS/lmo/test/test_bboxes/faster_R50_FPN_AugCosyAAE_HalfAnchor_lmo_pbr_lmo_fuse_real_all_8e_test_480x640.json",
     ),
+    SHOW=False
 )
 
 MODEL = dict(
@@ -92,7 +93,7 @@ VAL = dict(
     SCORE_ONLY=False,  # if the errors have been calculated
     EVAL_PRINT_ONLY=False,  # if the scores/recalls have been saved
     EVAL_PRECISION=False,  # use precision or recall
-    USE_BOP=True,  # whether to use bop toolkit
+    USE_BOP=False,  # whether to use bop toolkit
 )
 
-TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="est")  # gt | est
+TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="est", INFERENCE=False)  # gt | est
