@@ -495,11 +495,10 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
         # CHW, float32 tensor
         ## roi_image ------------------------------------
         roi_img = crop_resize_by_warp_affine(
-            image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR
-        ).transpose(2, 0, 1)
-
+            image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR,
+        bbox=bbox_xyxy).transpose(2, 0, 1)
         roi_img = self.normalize_image(cfg, roi_img)
-
+        #cv2.imshow("roi_img", roi_img.transpose(1, 2, 0))
         # roi_coord_2d ----------------------------------------------------
         roi_coord_2d = crop_resize_by_warp_affine(
             coord_2d, bbox_center, scale, out_res, interpolation=cv2.INTER_LINEAR

@@ -92,7 +92,7 @@ Calls get_affine_transform to generate the affine transformation matrix based on
 Uses cv2.warpAffine with the transformation matrix to perform the actual image transformation, resulting in the cropped, resized, and optionally rotated image.
 """
 
-def crop_resize_by_warp_affine(img, center, scale, output_size, rot=0, interpolation=cv2.INTER_LINEAR):
+def crop_resize_by_warp_affine(img, center, scale, output_size, rot=0, interpolation=cv2.INTER_LINEAR, bbox=None):
     """
     output_size: int or (w, h)
     NOTE: if img is (h,w,1), the output will be (h,w)
@@ -101,9 +101,18 @@ def crop_resize_by_warp_affine(img, center, scale, output_size, rot=0, interpola
         scale = (scale, scale)
     if isinstance(output_size, int):
         output_size = (output_size, output_size)
+
     trans = get_affine_transform(center, scale, rot, output_size)
 
+    # Apply affine transformation to the image and the mask
     dst_img = cv2.warpAffine(img, trans, (int(output_size[0]), int(output_size[1])), flags=interpolation)
+
+    if bbox is not None:
+        mask = np.zeros(img.shape[:2], dtype=np.uint8) 
+        mask[bbox[1]:bbox[3], bbox[0]:bbox[2]] = 255
+        dst_mask = cv2.warpAffine(mask, trans, (int(output_size[0]), int(output_size[1])), flags=interpolation)
+        # Set pixels outside the original bbox to black in the transformed image
+        dst_img[dst_mask == 0] = 0
 
     return dst_img
 
