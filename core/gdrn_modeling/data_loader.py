@@ -428,8 +428,8 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
                 # CHW, float32 tensor
                 # roi_image
                 roi_img = crop_resize_by_warp_affine(
-                    image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR
-                ).transpose(2, 0, 1)
+                    image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR,
+                bbox=bbox).transpose(2, 0, 1)
 
                 roi_img = self.normalize_image(cfg, roi_img)
                 roi_infos["roi_img"].append(roi_img.astype("float32"))
