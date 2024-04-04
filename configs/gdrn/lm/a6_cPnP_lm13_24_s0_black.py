@@ -37,11 +37,11 @@ SOLVER = dict(
 DATASETS = dict(
     TRAIN=("lm_13_train", "lm_imgn_13_train_1k_per_obj"),
     TEST=("lm_13_test",),
-    DET_FILES_TEST=("datasets/BOP_DATASETS/lm/test/test_bboxes/bbox_faster_all.json",),
+    #DET_FILES_TEST=("datasets/BOP_DATASETS/lm/test/test_bboxes/bbox_faster_all.json",),
 )
 
 MODEL = dict(
-    LOAD_DETS_TEST=True,
+    LOAD_DETS_TEST=False,
     PIXEL_MEAN=[0.0, 0.0, 0.0],
     PIXEL_STD=[255.0, 255.0, 255.0],
     CDPN=dict(
@@ -70,4 +70,4 @@ MODEL = dict(
     ),
 )
 
-TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="est")  # gt | est
+TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="gt", INFERENCE=False,)  # gt | est
