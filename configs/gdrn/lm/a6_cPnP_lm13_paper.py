@@ -35,6 +35,7 @@ DATASETS = dict(
     TRAIN=("lm_13_train", "lm_imgn_13_train_1k_per_obj"),
     TEST=("lm_13_test",),
     DET_FILES_TEST=("datasets/BOP_DATASETS/lm/test/test_bboxes/bbox_faster_all.json",),
+    SHOW=False
 )
 
 MODEL = dict(
@@ -67,4 +68,4 @@ MODEL = dict(
     ),
 )
 
-TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="est")  # gt | est
+TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="est", INFERENCE=False)  # gt | est

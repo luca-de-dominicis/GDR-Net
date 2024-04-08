@@ -1,8 +1,6 @@
-# Removed prob of bg change
-
 _base_ = ["../../_base_/gdrn_base.py"]
 SEED = 0
-OUTPUT_DIR = "output/gdrn/lm/a6_cPnP_lm13_24_s0_black"
+OUTPUT_DIR = "output/gdrn/lm/a6_cPnP_lm13_24_s0_masked"
 INPUT = dict(
     DZI_PAD_SCALE=1.5,
     COLOR_AUG_PROB=0.0,
@@ -37,7 +35,8 @@ SOLVER = dict(
 DATASETS = dict(
     TRAIN=("lm_13_train", "lm_imgn_13_train_1k_per_obj"),
     TEST=("lm_13_test",),
-    #DET_FILES_TEST=("datasets/BOP_DATASETS/lm/test/test_bboxes/bbox_faster_all.json",),
+   # DET_FILES_TEST=("datasets/BOP_DATASETS/lm/test/test_bboxes/bbox_faster_all.json",),
+    SHOW=False,
 )
 
 MODEL = dict(
@@ -70,4 +69,4 @@ MODEL = dict(
     ),
 )
 
-TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="gt", INFERENCE=False,)  # gt | est
+TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="gt", INFERENCE=False)  # gt | est

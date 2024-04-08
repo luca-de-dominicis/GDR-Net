@@ -417,7 +417,7 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
                 bbox_center = np.array([0.5 * (x1 + x2), 0.5 * (y1 + y2)])
                 bw = max(x2 - x1, 1)
                 bh = max(y2 - y1, 1)
-                scale = max(bh, bw) * cfg.INPUT.DZI_PAD_SCALE
+                scale = max(bh, bw) #* cfg.INPUT.DZI_PAD_SCALE
                 scale = min(scale, max(im_H, im_W)) * 1.0
 
                 roi_infos["bbox_center"].append(bbox_center.astype("float32"))
@@ -428,11 +428,10 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
                 # CHW, float32 tensor
                 # roi_image
                 roi_img = crop_resize_by_warp_affine(
-                    image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR,
-                bbox=bbox).transpose(2, 0, 1)
+                    image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR, bbox=bbox).transpose(2, 0, 1)
 
-                cv2.imshow("roi_img", roi_img.transpose(1, 2, 0).astype("uint8"))
-                cv2.waitKey(0)
+                # cv2.imshow("roi_img", roi_img.transpose(1, 2, 0).astype("uint8"))
+                # cv2.waitKey(0)
 
                 roi_img = self.normalize_image(cfg, roi_img)
                 roi_infos["roi_img"].append(roi_img.astype("float32"))
