@@ -108,6 +108,8 @@ def crop_resize_by_warp_affine(img, center, scale, output_size, rot=0, interpola
     dst_img = cv2.warpAffine(img, trans, (int(output_size[0]), int(output_size[1])), flags=interpolation)
 
     if bbox is not None:
+        #print(bbox)
+        bbox = np.round(bbox).astype(int)
         mask = np.zeros(img.shape[:2], dtype=np.uint8) 
         mask[bbox[1]:bbox[3], bbox[0]:bbox[2]] = 255
         dst_mask = cv2.warpAffine(mask, trans, (int(output_size[0]), int(output_size[1])), flags=interpolation)

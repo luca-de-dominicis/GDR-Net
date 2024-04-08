@@ -568,6 +568,9 @@ def gdrn_inference_on_dataset(cfg, model, data_loader, evaluator, amp_test=False
                     continue
 
             with autocast(enabled=amp_test):
+                # print("AAAA")
+                # cv2.imshow("img", batch["roi_img"][0].cpu().numpy().transpose(1, 2, 0))
+                # cv2.waitKey(0)
                 out_dict = model(
                     batch["roi_img"],
                     roi_classes=batch["roi_cls"],

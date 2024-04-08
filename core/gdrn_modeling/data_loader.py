@@ -431,6 +431,9 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
                     image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR,
                 bbox=bbox).transpose(2, 0, 1)
 
+                cv2.imshow("roi_img", roi_img.transpose(1, 2, 0).astype("uint8"))
+                cv2.waitKey(0)
+
                 roi_img = self.normalize_image(cfg, roi_img)
                 roi_infos["roi_img"].append(roi_img.astype("float32"))
 
