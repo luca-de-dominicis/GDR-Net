@@ -2,6 +2,7 @@ _base_ = ["../../_base_/gdrn_base.py"]
 SEED = 0
 OUTPUT_DIR = "output/gdrn/epose/config_epose_48_s0_sym_r32"
 INPUT = dict(
+    SEGMENT=True,
     DZI_PAD_SCALE=1.5,
     COLOR_AUG_PROB=0.0,
     COLOR_AUG_TYPE="code",
