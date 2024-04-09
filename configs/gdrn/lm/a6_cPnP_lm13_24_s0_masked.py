@@ -3,6 +3,7 @@ SEED = 0
 OUTPUT_DIR = "output/gdrn/lm/a6_cPnP_lm13_24_s0_masked"
 INPUT = dict(
     DZI_PAD_SCALE=1.5,
+    SEGMENT=True,
     COLOR_AUG_PROB=0.0,
     CHANGE_BG_PROB=0.0,
     COLOR_AUG_TYPE="code",

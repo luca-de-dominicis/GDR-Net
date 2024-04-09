@@ -2,6 +2,7 @@ _base_ = ["../../_base_/gdrn_base.py"]
 
 OUTPUT_DIR = "output/gdrn/lm/a6_cPnP_lm13_paper"
 INPUT = dict(
+    SEGMENT=True,
     DZI_PAD_SCALE=1.5,
     COLOR_AUG_PROB=0.0,
     COLOR_AUG_TYPE="code",
@@ -34,12 +35,12 @@ SOLVER = dict(
 DATASETS = dict(
     TRAIN=("lm_13_train", "lm_imgn_13_train_1k_per_obj"),
     TEST=("lm_13_test",),
-    DET_FILES_TEST=("datasets/BOP_DATASETS/lm/test/test_bboxes/bbox_faster_all.json",),
+   # DET_FILES_TEST=("datasets/BOP_DATASETS/lm/test/test_bboxes/bbox_faster_all.json",),
     SHOW=False
 )
 
 MODEL = dict(
-    LOAD_DETS_TEST=True,
+    LOAD_DETS_TEST=False,
     PIXEL_MEAN=[0.0, 0.0, 0.0],
     PIXEL_STD=[255.0, 255.0, 255.0],
     CDPN=dict(
@@ -68,4 +69,4 @@ MODEL = dict(
     ),
 )
 
-TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="est", INFERENCE=False)  # gt | est
+TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="gt", INFERENCE=False)  # gt | est
