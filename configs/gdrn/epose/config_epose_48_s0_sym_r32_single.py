@@ -1,8 +1,8 @@
 _base_ = ["../../_base_/gdrn_base.py"]
-
-OUTPUT_DIR = "output/gdrn/lm/a6_cPnP_lm13_paper"
+SEED = 0
+OUTPUT_DIR = "output/gdrn/epose/config_epose_48_s0_sym_r32"
 INPUT = dict(
-    SEGMENT=False,
+    SEGMENT=True,
     DZI_PAD_SCALE=1.5,
     COLOR_AUG_PROB=0.0,
     COLOR_AUG_TYPE="code",
@@ -21,7 +21,7 @@ INPUT = dict(
 )
 
 SOLVER = dict(
-    IMS_PER_BATCH=24,
+    IMS_PER_BATCH=48,
     LR_SCHEDULER_NAME="flat_and_anneal",
     ANNEAL_METHOD="cosine",  # "cosine"
     ANNEAL_POINT=0.72,
@@ -33,24 +33,26 @@ SOLVER = dict(
 )
 
 DATASETS = dict(
-    TRAIN=("lm_13_train", "lm_imgn_13_train_1k_per_obj"),
-    TEST=("lm_13_test",),
-    DET_FILES_TEST=("datasets/BOP_DATASETS/lm/test/test_bboxes/bbox_faster_all.json",),
+    TRAIN=("epose_single_train",), # TODO: MODIFY THE SECOND TRAIN SET
+    TEST=("epose_single_test",),
+    # DET_FILES_TEST=("datasets/custom/epose/test/test_bboxes/bbox_faster_all.json",), TODO: GENERATE FILE USING YOLO ?
+    SYM_OBJS=["ugello_l80_90", "dado_m5", "vite_65"],
     SHOW=False
 )
 
 MODEL = dict(
-    LOAD_DETS_TEST=True,
+    LOAD_DETS_TEST=False,
     PIXEL_MEAN=[0.0, 0.0, 0.0],
     PIXEL_STD=[255.0, 255.0, 255.0],
     CDPN=dict(
         ROT_HEAD=dict(
             FREEZE=False,
+            NUM_CLASSES=4,
             ROT_CLASS_AWARE=False,
             MASK_CLASS_AWARE=False,
             XYZ_LW=1.0,
             REGION_CLASS_AWARE=False,
-            NUM_REGIONS=64,
+            NUM_REGIONS=32,
         ),
         PNP_NET=dict(
             R_ONLY=False,
@@ -60,6 +62,7 @@ MODEL = dict(
             TRANS_TYPE="centroid_z",
             PM_NORM_BY_EXTENT=True,
             PM_R_ONLY=True,
+            PM_LOSS_SYM=True,
             CENTROID_LOSS_TYPE="L1",
             CENTROID_LW=1.0,
             Z_LOSS_TYPE="L1",
@@ -69,4 +72,4 @@ MODEL = dict(
     ),
 )
 
-TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="est", INFERENCE=False)  # gt | est
+TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="gt", INFERENCE=False)  # gt | est

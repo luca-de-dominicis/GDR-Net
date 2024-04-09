@@ -137,6 +137,11 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
                 process instead of making a copy.
         """
         self.augmentation = build_gdrn_augmentation(cfg, is_train=(split == "train"))
+        self.random_backs = []
+        for i in range(10):
+            # Generate a 256x256 random image
+            img = np.random.randint(0, 256, size=(256, 256, 3), dtype=np.uint8)
+            self.random_backs.append(img)
         if cfg.INPUT.COLOR_AUG_PROB > 0 and cfg.INPUT.COLOR_AUG_TYPE.lower() == "ssd":
             self.augmentation.append(ColorAugSSDTransform(img_format=cfg.INPUT.FORMAT))
             logging.getLogger(__name__).info("Color augmnetation used in training: " + str(self.augmentation[-1]))
@@ -301,6 +306,42 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
         self.sym_infos[dataset_name] = cur_sym_infos
         return self.sym_infos[dataset_name]
 
+    def _blacken_bg(self, im, im_mask, return_mask=False):
+        H, W = im.shape[:2]
+        # Create a black background image
+        bg_img = np.zeros((H, W, 3), dtype=np.uint8)
+        
+        mask = im_mask.copy().astype(bool)
+        cfg = self.cfg
+        if cfg.INPUT.get("TRUNCATE_FG", False):
+            nonzeros = np.nonzero(mask.astype(np.uint8))
+            x1, y1 = np.min(nonzeros, axis=1)
+            x2, y2 = np.max(nonzeros, axis=1)
+            c_h = 0.5 * (x1 + x2)
+            c_w = 0.5 * (y1 + y2)
+            rnd = random.random()
+            if rnd < 0.2:  # block upper
+                c_h_ = int(random.uniform(x1, c_h))
+                mask[:c_h_, :] = False
+            elif rnd < 0.4:  # block bottom
+                c_h_ = int(random.uniform(c_h, x2))
+                mask[c_h_:, :] = False
+            elif rnd < 0.6:  # block left
+                c_w_ = int(random.uniform(y1, c_w))
+                mask[:, :c_w_] = False
+            elif rnd < 0.8:  # block right
+                c_w_ = int(random.uniform(c_w, y2))
+                mask[:, c_w_:] = False
+            else:
+                pass
+        mask_bg = ~mask
+        im[mask_bg] = bg_img[mask_bg]
+        im = im.astype(np.uint8)
+        if return_mask:
+            return im, mask  # bool fg mask
+        else:
+            return im
+
     def read_data(self, dataset_dict):
         """load image and annos random shift & scale bbox; crop, rescale."""
         cfg = self.cfg
@@ -318,7 +359,7 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
         im_H_ori, im_W_ori = image.shape[:2]
 
         # currently only replace bg for train ###############################
-        if self.split == "train":
+        if self.split == "train" and cfg.INPUT.SEGMENT == False:
             # some synthetic data already has bg, img_type should be real or something else but not syn
             img_type = dataset_dict.get("img_type", "real")
             if img_type == "syn":
@@ -334,7 +375,15 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
                     image, mask_trunc = self.replace_bg(image.copy(), mask, return_mask=True)
                 else:
                     mask_trunc = None
+        elif cfg.INPUT.SEGMENT == True:
+            if self.split == "train":
+                mask = cocosegm2mask(dataset_dict["inst_infos"]["segmentation"], im_H_ori, im_W_ori)
+                image, mask_trunc= self._blacken_bg(image, mask, return_mask=True)
+            else:
+                mask = cocosegm2mask(dataset_dict["annotations"][0]["segmentation"], im_H_ori, im_W_ori)
+                image, mask_trunc= self._blacken_bg(image, mask, return_mask=True)
 
+            
         # NOTE: maybe add or change color augment here ===================================
         if self.split == "train" and self.color_aug_prob > 0 and self.color_augmentor is not None:
             if np.random.rand() < self.color_aug_prob:
@@ -427,9 +476,13 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
 
                 # CHW, float32 tensor
                 # roi_image
+                rnd_bg = self.random_backs[np.random.randint(0, len(self.random_backs))]
                 roi_img = crop_resize_by_warp_affine(
-                    image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR
-                ).transpose(2, 0, 1)
+                    image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR#, bbox=bbox,# rnd_bg=rnd_bg
+                    ).transpose(2, 0, 1)
+
+                # cv2.imshow("roi_img", roi_img.transpose(1, 2, 0).astype("uint8"))
+                # cv2.waitKey(0)
 
                 roi_img = self.normalize_image(cfg, roi_img)
                 roi_infos["roi_img"].append(roi_img.astype("float32"))
@@ -495,11 +548,10 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
         # CHW, float32 tensor
         ## roi_image ------------------------------------
         roi_img = crop_resize_by_warp_affine(
-            image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR
-        ).transpose(2, 0, 1)
-
+            image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR,
+        bbox=bbox_xyxy).transpose(2, 0, 1)
         roi_img = self.normalize_image(cfg, roi_img)
-
+        #cv2.imshow("roi_img", roi_img.transpose(1, 2, 0))
         # roi_coord_2d ----------------------------------------------------
         roi_coord_2d = crop_resize_by_warp_affine(
             coord_2d, bbox_center, scale, out_res, interpolation=cv2.INTER_LINEAR

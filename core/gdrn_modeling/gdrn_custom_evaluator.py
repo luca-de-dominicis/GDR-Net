@@ -48,7 +48,6 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
     """custom evaluation of 6d pose."""
 
     def __init__(self, cfg, dataset_name, distributed, output_dir, train_objs=None):
-        self.first = True
         self.cfg = cfg
         self._distributed = distributed
         self._output_dir = output_dir
@@ -202,8 +201,15 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
 
                 if cls_name not in self._predictions:
                     self._predictions[cls_name] = OrderedDict()
+                if "bbox" in _input["annotations"][inst_i]:
+                    x, y, w, h = _input["annotations"][inst_i]["bbox"]
+                else:
+                    x, y, w, h = _input["annotations"][inst_i]["bbox_est"]
+                x1, y1 = x-w/2, y-h/2
+                x2, y2 = x+w/2, y+h/2
+                bbox = np.array([x1, y1, x2, y2])
 
-                result = {"score": score, "R": rot_est, "t": trans_est, "time": output["time"]}
+                result = {"score": score, "R": rot_est, "t": trans_est, "time": output["time"], "bbox": bbox}
                 if self._predictions[cls_name].get(file_name) is None:
                     self._predictions[cls_name][file_name] = [result]
                 else:
@@ -487,19 +493,26 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
             annos = im_dict["annotations"]
             K = im_dict["cam"]
             # Sort annos for bbox
-            annos.sort(key=lambda x: (x["bbox"][0] + x["bbox"][1]) / 2.0, reverse=True)
+            #annos.sort(key=lambda x: (x["bbox"][0] + x["bbox"][1]) / 2.0, reverse=True)
             for anno in annos:
                 quat = anno["quat"]
                 R = quat2mat(quat)
                 trans = anno["trans"]
                 obj_name = self._metadata.objs[anno["category_id"]]
+                x,y,w,h = anno["bbox"]
+                x1, y1 = x-w/2, y-h/2
+                x2, y2 = x+w/2, y+h/2
+                bbox = np.array([x1, y1, x2, y2])
                 if obj_name not in self.gts:
                     self.gts[obj_name] = OrderedDict()
-                result = {"R": R, "t": trans, "K": K}
+                result = {"R": R, "t": trans, "K": K, "bbox": bbox}
                 if self.gts[obj_name].get(file_name) is None:
                     self.gts[obj_name][file_name] = [result]
                 else:
                     self.gts[obj_name][file_name] += [result]
+
+
+
 
     def _eval_predictions(self):
         """Evaluate self._predictions on 6d pose.
@@ -565,19 +578,18 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
                         recalls[obj_name][metric_name].append(0.0)
                     continue
                 index = len(obj_gts[file_name]) if len(obj_gts[file_name]) < len(obj_preds[file_name]) else len(obj_preds[file_name])
-               
+                # Sort the predictions and the gt by IoU of bboxes
+                obj_preds[file_name], gt_anno = sort_boxes_by_iou(obj_preds[file_name], gt_anno)
                 for i in range(index):
-                    instance= obj_preds[file_name][i]
-                    if self.first:
-                        print(index)
-                        print(instance['t'])
-                        print(gt_anno[i]['t'])
+                    instance=obj_preds[file_name][i]
+                    #print(instance["bbox"])
+                    #print(gt_anno[i]["bbox"])
                     R_pred = instance["R"]
                     t_pred = instance["t"]
                     
                     R_gt = gt_anno[i]["R"]
                     t_gt = gt_anno[i]["t"]
-
+                    #print(t_gt)
                     t_error = te(t_pred, t_gt)
 
                     if obj_name in cfg.DATASETS.SYM_OBJS:
@@ -864,3 +876,58 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
         if self._distributed:
             self._logger.warning("\n The current evaluation on multi-gpu might be incorrect, run with single-gpu instead.")
         return {}
+
+def calculate_iou(box1, box2):
+    """
+    Calculate Intersection over Union (IOU) between two bounding boxes.
+    Arguments:
+    box1, box2: Bounding boxes in the format [x1, y1, x2, y2].
+    Returns:
+    IOU value.
+    """
+    # Determine coordinates of intersection rectangle
+    x_left = max(box1[0], box2[0])
+    y_top = max(box1[1], box2[1])
+    x_right = min(box1[2], box2[2])
+    y_bottom = min(box1[3], box2[3])
+
+    # Calculate intersection area
+    if x_right < x_left or y_bottom < y_top:
+        intersection_area = 0
+    else:
+        intersection_area = (x_right - x_left) * (y_bottom - y_top)
+
+    # Calculate area of each bounding box
+    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+
+    # Calculate union area
+    union_area = box1_area + box2_area - intersection_area
+
+    # Calculate IOU
+    iou = intersection_area / union_area if union_area > 0 else 0
+    return iou
+
+def sort_boxes_by_iou(boxes1, boxes2):
+    """
+    Sort two lists of bounding boxes by Intersection over Union (IOU).
+    Arguments:
+    boxes1, boxes2: Lists of dictionaries with 'bbox' key containing bounding box.
+    Returns:
+    Sorted lists of bounding boxes based on IOU.
+    """
+    sorted_boxes1 = []
+    sorted_boxes2 = []
+
+    for box1 in boxes1:
+        max_iou = -1
+        best_box2 = None
+        for box2 in boxes2:
+            iou = calculate_iou(box1['bbox'], box2['bbox'])
+            if iou > max_iou:
+                max_iou = iou
+                best_box2 = box2
+        sorted_boxes1.append(box1)
+        sorted_boxes2.append(best_box2)
+
+    return sorted_boxes1, sorted_boxes2
