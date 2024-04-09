@@ -478,7 +478,7 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
                 # roi_image
                 rnd_bg = self.random_backs[np.random.randint(0, len(self.random_backs))]
                 roi_img = crop_resize_by_warp_affine(
-                    image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR#, bbox=bbox, rnd_bg=rnd_bg
+                    image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR#, bbox=bbox,# rnd_bg=rnd_bg
                     ).transpose(2, 0, 1)
 
                 # cv2.imshow("roi_img", roi_img.transpose(1, 2, 0).astype("uint8"))

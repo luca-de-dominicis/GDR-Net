@@ -12,7 +12,7 @@ import random
 import subprocess
 import time
 from collections import OrderedDict
-import pickle
+
 import cv2
 from matplotlib.pyplot import sca
 import mmcv
@@ -148,6 +148,7 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
             image_points = image_points[indices[:max_keep]]
         return image_points, model_points
 
+
     def process(self, inputs, outputs, out_dict):
         """
         Args:
@@ -200,9 +201,19 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
 
                 if cls_name not in self._predictions:
                     self._predictions[cls_name] = OrderedDict()
+                if "bbox" in _input["annotations"][inst_i]:
+                    x, y, w, h = _input["annotations"][inst_i]["bbox"]
+                else:
+                    x, y, w, h = _input["annotations"][inst_i]["bbox_est"]
+                x1, y1 = x-w/2, y-h/2
+                x2, y2 = x+w/2, y+h/2
+                bbox = np.array([x1, y1, x2, y2])
 
-                result = {"score": score, "R": rot_est, "t": trans_est, "time": output["time"]}
-                self._predictions[cls_name][file_name] = result
+                result = {"score": score, "R": rot_est, "t": trans_est, "time": output["time"], "bbox": bbox}
+                if self._predictions[cls_name].get(file_name) is None:
+                    self._predictions[cls_name][file_name] = [result]
+                else:
+                    self._predictions[cls_name][file_name] += [result]
 
     def process_net_and_pnp(self, inputs, outputs, out_dict, pnp_type="iter"):
         """Initialize with network prediction (learned PnP) + iter PnP
@@ -332,7 +343,7 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
                     self._predictions[cls_name] = OrderedDict()
 
                 result = {"score": score, "R": pose_est[:3, :3], "t": pose_est[:3, 3], "time": output["time"]}
-                self._predictions[cls_name][file_name] = result
+                self._predictions[cls_name][file_name] = [result] if file_name not in self._predictions[cls_name] else self._predictions[cls_name][file_name].append(result)
 
     def process_pnp_ransac(self, inputs, outputs, out_dict):
         """
@@ -481,14 +492,27 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
             file_name = im_dict["file_name"]
             annos = im_dict["annotations"]
             K = im_dict["cam"]
+            # Sort annos for bbox
+            #annos.sort(key=lambda x: (x["bbox"][0] + x["bbox"][1]) / 2.0, reverse=True)
             for anno in annos:
                 quat = anno["quat"]
                 R = quat2mat(quat)
                 trans = anno["trans"]
                 obj_name = self._metadata.objs[anno["category_id"]]
+                x,y,w,h = anno["bbox"]
+                x1, y1 = x-w/2, y-h/2
+                x2, y2 = x+w/2, y+h/2
+                bbox = np.array([x1, y1, x2, y2])
                 if obj_name not in self.gts:
                     self.gts[obj_name] = OrderedDict()
-                self.gts[obj_name][file_name] = {"R": R, "t": trans, "K": K}
+                result = {"R": R, "t": trans, "K": K, "bbox": bbox}
+                if self.gts[obj_name].get(file_name) is None:
+                    self.gts[obj_name][file_name] = [result]
+                else:
+                    self.gts[obj_name][file_name] += [result]
+
+
+
 
     def _eval_predictions(self):
         """Evaluate self._predictions on 6d pose.
@@ -511,8 +535,6 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
         recalls = OrderedDict()
         errors = OrderedDict()
         self.get_gts()
-        with open("gts.pkl", "wb") as f:
-            pickle.dump(self.gts, f)
 
         error_names = ["ad", "re", "te", "proj"]
         metric_names = [
@@ -546,70 +568,78 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
                 errors[obj_name] = OrderedDict()
                 for err_name in error_names:
                     errors[obj_name][err_name] = []
+
             #################
             obj_gts = self.gts[obj_name]
             obj_preds = self._predictions[obj_name]
             for file_name, gt_anno in obj_gts.items():
-                if file_name not in obj_preds:  # no pred found
+                if file_name not in obj_preds or obj_preds[file_name] is None:  # no pred found
                     for metric_name in metric_names:
                         recalls[obj_name][metric_name].append(0.0)
                     continue
-                # compute each metric
+                index = len(obj_gts[file_name]) if len(obj_gts[file_name]) < len(obj_preds[file_name]) else len(obj_preds[file_name])
+                # Sort the predictions and the gt by IoU of bboxes
+                obj_preds[file_name], gt_anno = sort_boxes_by_iou(obj_preds[file_name], gt_anno)
+                for i in range(index):
+                    instance=obj_preds[file_name][i]
+                    #print(instance["bbox"])
+                    #print(gt_anno[i]["bbox"])
+                    R_pred = instance["R"]
+                    t_pred = instance["t"]
+                    
+                    R_gt = gt_anno[i]["R"]
+                    t_gt = gt_anno[i]["t"]
+                    #print(t_gt)
+                    t_error = te(t_pred, t_gt)
 
-                R_pred = obj_preds[file_name]["R"]
-                t_pred = obj_preds[file_name]["t"]
+                    if obj_name in cfg.DATASETS.SYM_OBJS:
+                        R_gt_sym = get_closest_rot(R_pred, R_gt, self._metadata.sym_infos[cur_label])
+                        r_error = re(R_pred, R_gt_sym)
 
-                R_gt = gt_anno["R"]
-                t_gt = gt_anno["t"]
-                t_error = te(t_pred, t_gt)
+                        proj_2d_error = arp_2d(
+                            R_pred, t_pred, R_gt_sym, t_gt, pts=self.models_3d[cur_label]["pts"], K=gt_anno[i]["K"]
+                        )
 
-                if obj_name in cfg.DATASETS.SYM_OBJS:
-                    R_gt_sym = get_closest_rot(R_pred, R_gt, self._metadata.sym_infos[cur_label])
-                    r_error = re(R_pred, R_gt_sym)
+                        ad_error = adi(
+                            R_pred, t_pred, R_gt, t_gt, pts=self.models_3d[self.obj_names.index(obj_name)]["pts"]
+                        )
+                    else:
+                        r_error = re(R_pred, R_gt)
 
-                    proj_2d_error = arp_2d(
-                        R_pred, t_pred, R_gt_sym, t_gt, pts=self.models_3d[cur_label]["pts"], K=gt_anno["K"]
-                    )
+                        proj_2d_error = arp_2d(
+                            R_pred, t_pred, R_gt, t_gt, pts=self.models_3d[cur_label]["pts"], K=gt_anno[i]["K"]
+                        )
 
-                    ad_error = adi(
-                        R_pred, t_pred, R_gt, t_gt, pts=self.models_3d[self.obj_names.index(obj_name)]["pts"]
-                    )
-                else:
-                    r_error = re(R_pred, R_gt)
+                        ad_error = add(
+                            R_pred, t_pred, R_gt, t_gt, pts=self.models_3d[self.obj_names.index(obj_name)]["pts"]
+                        )
 
-                    proj_2d_error = arp_2d(
-                        R_pred, t_pred, R_gt, t_gt, pts=self.models_3d[cur_label]["pts"], K=gt_anno["K"]
-                    )
+                    #########
+                    errors[obj_name]["ad"].append(ad_error)
+                    errors[obj_name]["re"].append(r_error)
+                    errors[obj_name]["te"].append(t_error)
+                    errors[obj_name]["proj"].append(proj_2d_error)
+                    ############
+                    recalls[obj_name]["ad_2"].append(float(ad_error < 0.02 * self.diameters[cur_label]))
+                    recalls[obj_name]["ad_5"].append(float(ad_error < 0.05 * self.diameters[cur_label]))
+                    recalls[obj_name]["ad_10"].append(float(ad_error < 0.1 * self.diameters[cur_label]))
+                    # deg, cm
+                    recalls[obj_name]["rete_2"].append(float(r_error < 2 and t_error < 0.02))
+                    recalls[obj_name]["rete_5"].append(float(r_error < 5 and t_error < 0.05))
+                    recalls[obj_name]["rete_10"].append(float(r_error < 10 and t_error < 0.1))
 
-                    ad_error = add(
-                        R_pred, t_pred, R_gt, t_gt, pts=self.models_3d[self.obj_names.index(obj_name)]["pts"]
-                    )
+                    recalls[obj_name]["re_2"].append(float(r_error < 2))
+                    recalls[obj_name]["re_5"].append(float(r_error < 5))
+                    recalls[obj_name]["re_10"].append(float(r_error < 10))
 
-                #########
-                errors[obj_name]["ad"].append(ad_error)
-                errors[obj_name]["re"].append(r_error)
-                errors[obj_name]["te"].append(t_error)
-                errors[obj_name]["proj"].append(proj_2d_error)
-                ############
-                recalls[obj_name]["ad_2"].append(float(ad_error < 0.02 * self.diameters[cur_label]))
-                recalls[obj_name]["ad_5"].append(float(ad_error < 0.05 * self.diameters[cur_label]))
-                recalls[obj_name]["ad_10"].append(float(ad_error < 0.1 * self.diameters[cur_label]))
-                # deg, cm
-                recalls[obj_name]["rete_2"].append(float(r_error < 2 and t_error < 0.02))
-                recalls[obj_name]["rete_5"].append(float(r_error < 5 and t_error < 0.05))
-                recalls[obj_name]["rete_10"].append(float(r_error < 10 and t_error < 0.1))
-
-                recalls[obj_name]["re_2"].append(float(r_error < 2))
-                recalls[obj_name]["re_5"].append(float(r_error < 5))
-                recalls[obj_name]["re_10"].append(float(r_error < 10))
-
-                recalls[obj_name]["te_2"].append(float(t_error < 0.02))
-                recalls[obj_name]["te_5"].append(float(t_error < 0.05))
-                recalls[obj_name]["te_10"].append(float(t_error < 0.1))
-                # px
-                recalls[obj_name]["proj_2"].append(float(proj_2d_error < 2))
-                recalls[obj_name]["proj_5"].append(float(proj_2d_error < 5))
-                recalls[obj_name]["proj_10"].append(float(proj_2d_error < 10))
+                    recalls[obj_name]["te_2"].append(float(t_error < 0.02))
+                    recalls[obj_name]["te_5"].append(float(t_error < 0.05))
+                    recalls[obj_name]["te_10"].append(float(t_error < 0.1))
+                    # px
+                    recalls[obj_name]["proj_2"].append(float(proj_2d_error < 2))
+                    recalls[obj_name]["proj_5"].append(float(proj_2d_error < 5))
+                    recalls[obj_name]["proj_10"].append(float(proj_2d_error < 10))
+                self.first = False
 
         # summarize
         obj_names = sorted(list(recalls.keys()))
@@ -846,3 +876,58 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
         if self._distributed:
             self._logger.warning("\n The current evaluation on multi-gpu might be incorrect, run with single-gpu instead.")
         return {}
+
+def calculate_iou(box1, box2):
+    """
+    Calculate Intersection over Union (IOU) between two bounding boxes.
+    Arguments:
+    box1, box2: Bounding boxes in the format [x1, y1, x2, y2].
+    Returns:
+    IOU value.
+    """
+    # Determine coordinates of intersection rectangle
+    x_left = max(box1[0], box2[0])
+    y_top = max(box1[1], box2[1])
+    x_right = min(box1[2], box2[2])
+    y_bottom = min(box1[3], box2[3])
+
+    # Calculate intersection area
+    if x_right < x_left or y_bottom < y_top:
+        intersection_area = 0
+    else:
+        intersection_area = (x_right - x_left) * (y_bottom - y_top)
+
+    # Calculate area of each bounding box
+    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+
+    # Calculate union area
+    union_area = box1_area + box2_area - intersection_area
+
+    # Calculate IOU
+    iou = intersection_area / union_area if union_area > 0 else 0
+    return iou
+
+def sort_boxes_by_iou(boxes1, boxes2):
+    """
+    Sort two lists of bounding boxes by Intersection over Union (IOU).
+    Arguments:
+    boxes1, boxes2: Lists of dictionaries with 'bbox' key containing bounding box.
+    Returns:
+    Sorted lists of bounding boxes based on IOU.
+    """
+    sorted_boxes1 = []
+    sorted_boxes2 = []
+
+    for box1 in boxes1:
+        max_iou = -1
+        best_box2 = None
+        for box2 in boxes2:
+            iou = calculate_iou(box1['bbox'], box2['bbox'])
+            if iou > max_iou:
+                max_iou = iou
+                best_box2 = box2
+        sorted_boxes1.append(box1)
+        sorted_boxes2.append(best_box2)
+
+    return sorted_boxes1, sorted_boxes2
