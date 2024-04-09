@@ -32,14 +32,15 @@ SOLVER = dict(
 )
 
 DATASETS = dict(
-    TRAIN=("epose_train",), # TODO: MODIFY THE SECOND TRAIN SET
-    TEST=("epose_real",),
-    DET_FILES_TEST=("datasets/custom/epose/test/test_bboxes/yolov8det.json",),
+    TRAIN=("epose_single_train",), # TODO: MODIFY THE SECOND TRAIN SET
+    TEST=("epose_single_test",),
+    # DET_FILES_TEST=("datasets/custom/epose/test/test_bboxes/bbox_faster_all.json",), TODO: GENERATE FILE USING YOLO ?
     SYM_OBJS=["ugello_l80_90", "dado_m5", "vite_65"],
+    SHOW=False
 )
 
 MODEL = dict(
-    LOAD_DETS_TEST=True,
+    LOAD_DETS_TEST=False,
     PIXEL_MEAN=[0.0, 0.0, 0.0],
     PIXEL_STD=[255.0, 255.0, 255.0],
     CDPN=dict(
@@ -70,4 +71,4 @@ MODEL = dict(
     ),
 )
 
-TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="est", INFERENCE=True)  # gt | est
+TEST = dict(EVAL_PERIOD=0, VIS=False, TEST_BBOX_TYPE="gt", INFERENCE=False)  # gt | est
