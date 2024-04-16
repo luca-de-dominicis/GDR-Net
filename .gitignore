@@ -51,3 +51,8 @@ dist/
 
 # Runs for tensorboard
 runs
+
+# External
+/external
+
+.gitmodules
