@@ -87,3 +87,27 @@ If you find this useful in your research, please consider citing:
     pages     = {16611-16621}
 }
 ```
+
+## Rendering
+To produce the rendering of the predictions you can use [bRend](https://github.com/sapienzadavide/bRend) .
+```
+cd your-repo-folder
+mkdir external/
+cd external
+git submodule add git@github.com:sapienzadavide/bRend.git
+````
+
+Modify the file *external/bRend/renderer/renderer_vispy*:
+
+Old:
+```
+from renderer import inout
+from renderer import misc
+from renderer import renderer
+````
+New:
+```
+from external.bRend.renderer import inout
+from external.bRend.renderer import misc
+from external.bRend.renderer import renderer
+```
