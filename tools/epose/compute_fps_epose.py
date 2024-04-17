@@ -9,17 +9,19 @@ import mmcv
 from lib.pysixd import inout, misc
 import ref
 from core.utils.data_utils import get_fps_and_center
+import argparse
 
 
-model_dir = ref.epose_full.model_dir
+#model_dir = ref.epose_full.model_dir
 id2obj = ref.epose_full.id2obj
 
 
-def main():
+def main(path):
+    print(path)
     vertex_scale = 0.001
     fps_dict = {}
+    model_dir = osp.join(path, "models")
     for obj_id in tqdm(id2obj):
-        print(obj_id)
         model_path = osp.join(model_dir, f"obj_{obj_id:06d}.ply")
         model = inout.load_ply(model_path, vertex_scale=vertex_scale)
         fps_dict[str(obj_id)] = {}
@@ -39,4 +41,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--path", type=str, help="path to the epose dataset", default=ref.epose_full.model_dir
+    )
+
+    args = parser.parse_args()
+
+    main(args.path)

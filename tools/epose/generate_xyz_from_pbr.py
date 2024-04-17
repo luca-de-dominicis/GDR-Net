@@ -33,19 +33,10 @@ classes = sorted(classes)
 # DEPTH_FACTOR = 1000.
 IM_H = 480
 IM_W = 640
-near = 0.01
-far = 6.5
-
-data_dir = osp.normpath(osp.join(PROJ_ROOT, "datasets/custom/epose/train_pbr"))
-
-cls_indexes = sorted(idx2class.keys())
-cls_names = [idx2class[cls_idx] for cls_idx in cls_indexes]
-epose_model_dir = osp.normpath(osp.join(PROJ_ROOT, "datasets/custom/epose/models/"))
-model_paths = [osp.join(epose_model_dir, f"obj_{obj_id:06d}.ply") for obj_id in cls_indexes]
-texture_paths = None
+near = 0.001
+far = 60
 
 scenes = [i for i in range(0, 1)]
-xyz_root = osp.normpath(osp.join(PROJ_ROOT, "datasets/custom/epose/train_pbr/xyz_crop"))
 
 K = np.array([[320, 0.0, 320.0], [0.0, 320, 240.0], [0.0, 0.0, 1.0]])
 
@@ -63,7 +54,8 @@ def get_emb_show(bbox_emb):
 
 
 class XyzGen(object):
-    def __init__(self, split="train", scene="all"):
+    def __init__(self, split="train", scene="all", path=None):
+        data_dir = osp.normpath(osp.join(PROJ_ROOT, path + "/train_pbr"))
         if split == "train":
             scene_ids = scenes
             data_root = data_dir
@@ -80,11 +72,19 @@ class XyzGen(object):
         self.sel_scene_ids = sel_scene_ids
         self.data_root = data_root
         self.renderer = None
+        self.cls_indexes = sorted(idx2class.keys())
+        self.cls_names = [idx2class[cls_idx] for cls_idx in self.cls_indexes]
+        self.epose_model_dir = osp.normpath(osp.join(PROJ_ROOT, path + "/models/"))
+        self.model_paths = [osp.join(self.epose_model_dir, f"obj_{obj_id:06d}.ply") for obj_id in self.cls_indexes]
+        self.texture_paths = None
+        self.xyz_root = osp.normpath(osp.join(PROJ_ROOT, path + "/train_pbr/xyz_crop"))
+
+
 
     def get_renderer(self):
         if self.renderer is None:
             self.renderer = Renderer(
-                model_paths, vertex_tmp_store_folder=osp.join(PROJ_ROOT, ".cache"), vertex_scale=0.001
+                self.model_paths, vertex_tmp_store_folder=osp.join(PROJ_ROOT, ".cache"), vertex_scale=0.001
             )
         return self.renderer
 
@@ -116,12 +116,12 @@ class XyzGen(object):
                     # pose = np.hstack([R, t.reshape(3, 1)])
 
                     save_path = osp.join(
-                        xyz_root,
+                        self.xyz_root,
                         f"{scene_id:06d}/{int_im_id:06d}_{anno_i:06d}-xyz.pkl",
                     )
                     # if osp.exists(save_path) and osp.getsize(save_path) > 0:
                     #     continue
-                    render_obj_id = cls_indexes.index(obj_id)  # 0-based
+                    render_obj_id = self.cls_indexes.index(obj_id)  # 0-based
                     bgr_gl, depth_gl = self.get_renderer().render(render_obj_id, IM_W, IM_H, K, R, t, near, far)
                     mask = (depth_gl > 0).astype("uint8")
 
@@ -203,6 +203,7 @@ if __name__ == "__main__":
     parser.add_argument("--scene", type=str, default="all", help="scene id")
     parser.add_argument("--vis", default=False, action="store_true", help="vis")
     parser.add_argument("--no-save", default=False, action="store_true", help="do not save results")
+    parser.add_argument("--path", type=str, default=None, help="path to the dataset")
     args = parser.parse_args()
 
     height = IM_H
@@ -212,7 +213,7 @@ if __name__ == "__main__":
 
     T_begin = time.perf_counter()
     setproctitle.setproctitle(f"gen_xyz_epose_train_pbr_{args.split}_{args.scene}")
-    xyz_gen = XyzGen(args.split, args.scene)
+    xyz_gen = XyzGen(args.split, args.scene, args.path)
     xyz_gen.main()
     T_end = time.perf_counter() - T_begin
     print("split", args.split, "scene", args.scene, "total time: ", T_end)
