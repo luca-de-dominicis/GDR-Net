@@ -125,6 +125,7 @@ class Base_DatasetFromList(data.Dataset):
         bw = x2 - x1
         if cfg.INPUT.DZI_TYPE.lower() == "uniform":
             scale_ratio = 1 + cfg.INPUT.DZI_SCALE_RATIO * (2 * np.random.random_sample() - 1)  # [1-0.25, 1+0.25]
+            #scale_ratio = 1 + cfg.INPUT.DZI_SCALE_RATIO * (np.random.random_sample())
             shift_ratio = cfg.INPUT.DZI_SHIFT_RATIO * (2 * np.random.random_sample(2) - 1)  # [-0.25, 0.25]
             bbox_center = np.array([cx + bw * shift_ratio[0], cy + bh * shift_ratio[1]])  # (h/2, w/2)
             scale = max(y2 - y1, x2 - x1) * scale_ratio * cfg.INPUT.DZI_PAD_SCALE
