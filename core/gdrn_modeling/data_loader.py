@@ -477,9 +477,14 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
                 # CHW, float32 tensor
                 # roi_image
                 rnd_bg = self.random_backs[np.random.randint(0, len(self.random_backs))]
-                roi_img = crop_resize_by_warp_affine(
-                    image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR#, bbox=bbox,# rnd_bg=rnd_bg
-                    ).transpose(2, 0, 1)
+                if cfg.INPUT.BLACK_PAD:
+                    roi_img = crop_resize_by_warp_affine(
+                        image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR, bbox=bbox, rnd_bg=rnd_bg if cfg.INPUT.RND_BG else None
+                        ).transpose(2, 0, 1)
+                else:
+                    roi_img = crop_resize_by_warp_affine(
+                        image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR,
+                        ).transpose(2, 0, 1)
 
                 # cv2.imshow("roi_img", roi_img.transpose(1, 2, 0).astype("uint8"))
                 # cv2.waitKey(0)
@@ -547,9 +552,14 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
 
         # CHW, float32 tensor
         ## roi_image ------------------------------------
-        roi_img = crop_resize_by_warp_affine(
-            image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR,
-        bbox=bbox_xyxy).transpose(2, 0, 1)
+        if cfg.INPUT.BLACK_PAD:
+            roi_img = crop_resize_by_warp_affine(
+                image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR, bbox=bbox, rnd_bg=rnd_bg if cfg.INPUT.RND_BG else None
+                ).transpose(2, 0, 1)
+        else:
+            roi_img = crop_resize_by_warp_affine(
+                image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR,
+                ).transpose(2, 0, 1)
         roi_img = self.normalize_image(cfg, roi_img)
         #cv2.imshow("roi_img", roi_img.transpose(1, 2, 0))
         # roi_coord_2d ----------------------------------------------------
