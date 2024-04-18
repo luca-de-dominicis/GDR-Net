@@ -43,6 +43,7 @@ from transforms3d.quaternions import mat2quat
 
 from .dataset_factory import register_datasets
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -379,9 +380,9 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
             if self.split == "train":
                 mask = cocosegm2mask(dataset_dict["inst_infos"]["segmentation"], im_H_ori, im_W_ori)
                 image, mask_trunc= self._blacken_bg(image, mask, return_mask=True)
-            else:
-                mask = cocosegm2mask(dataset_dict["annotations"][0]["segmentation"], im_H_ori, im_W_ori)
-                image, mask_trunc= self._blacken_bg(image, mask, return_mask=True)
+        
+        # cv2.imshow("image", image)
+        # cv2.waitKey(0)
 
             
         # NOTE: maybe add or change color augment here ===================================
@@ -394,8 +395,8 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
 
         # other transforms (mainly geometric ones);
         # for 6d pose task, flip is now allowed in general except for some 2d keypoints methods
-
-        image, transforms = T.apply_augmentations(self.augmentation, image)
+        if self.split == "train":
+            image, transforms = T.apply_augmentations(self.augmentation, image)
         im_H, im_W = image_shape = image.shape[:2]  # h, w
 
         # NOTE: scale camera intrinsic if necessary ================================
@@ -413,6 +414,11 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
 
         # CHW -> HWC
         coord_2d = get_2d_coord_np(im_W, im_H, low=0, high=1).transpose(1, 2, 0)
+        # print(coord_2d)
+        # print(coord_2d.shape)
+        # cv2.imshow("coord_2d0", coord_2d[:, :, 0])
+        # cv2.imshow("coord_2d1", coord_2d[:, :, 1])
+        #cv2.waitKey(0)
 
         #################################################################################
         if self.split != "train":
@@ -437,7 +443,16 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
             # TODO: how to handle image without detections
             #   filter those when load annotations or detections, implement a function for this
             # "annotations" means detections
-            for inst_i, inst_infos in enumerate(dataset_dict["annotations"]):                                                                                                                                                         
+            for inst_i, inst_infos in enumerate(dataset_dict["annotations"]):
+                orig_img = image.copy() 
+                if cfg.INPUT.SEGMENT == True:
+                    mask = cocosegm2mask(dataset_dict["annotations"][inst_i]["segmentation"], im_H_ori, im_W_ori)
+                    image_masked, mask_trunc= self._blacken_bg(orig_img, mask, return_mask=True)
+                else:
+                    image_masked = orig_img
+                #cv2.imshow("image_masked", image_masked)
+                image_masked, transforms = T.apply_augmentations(self.augmentation, image_masked)
+                im_H, im_W = image_shape = image_masked.shape[:2]  # h, w                                                                                                                                                       
                 # inherent image-level infos
                 roi_infos["scene_im_id"].append(dataset_dict["scene_im_id"])
                 roi_infos["file_name"].append(dataset_dict["file_name"])
@@ -479,11 +494,11 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
                 rnd_bg = self.random_backs[np.random.randint(0, len(self.random_backs))]
                 if cfg.INPUT.BLACK_PAD:
                     roi_img = crop_resize_by_warp_affine(
-                        image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR, bbox=bbox, rnd_bg=rnd_bg if cfg.INPUT.RND_BG else None
+                        image_masked, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR, bbox=bbox, rnd_bg=rnd_bg if cfg.INPUT.RND_BG else None
                         ).transpose(2, 0, 1)
                 else:
                     roi_img = crop_resize_by_warp_affine(
-                        image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR,
+                        image_masked, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR,
                         ).transpose(2, 0, 1)
 
                 # cv2.imshow("roi_img", roi_img.transpose(1, 2, 0).astype("uint8"))
@@ -498,6 +513,8 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
                 ).transpose(
                     2, 0, 1
                 )  # HWC -> CHW
+                # Draw on image
+
                 roi_infos["roi_coord_2d"].append(roi_coord_2d.astype("float32"))
 
             for _key in roi_keys:
@@ -561,11 +578,16 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
                 image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR,
                 ).transpose(2, 0, 1)
         roi_img = self.normalize_image(cfg, roi_img)
-        #cv2.imshow("roi_img", roi_img.transpose(1, 2, 0))
+        cv2.imshow("roi_img", roi_img.transpose(1, 2, 0))
         # roi_coord_2d ----------------------------------------------------
         roi_coord_2d = crop_resize_by_warp_affine(
             coord_2d, bbox_center, scale, out_res, interpolation=cv2.INTER_LINEAR
         ).transpose(2, 0, 1)
+        # print(roi_coord_2d)
+        # print(roi_coord_2d.shape)
+        cv2.imshow("roi_coord_2d0", roi_coord_2d.transpose(1, 2, 0)[:,:,0])
+        cv2.imshow("roi_coord_2d1", roi_coord_2d.transpose(1, 2, 0)[:,:,1])
+        cv2.waitKey(0)
 
         ## roi_mask ---------------------------------------
         # (mask_trunc < mask_visib < mask_obj)
@@ -666,6 +688,9 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
         else:
             dataset_dict["roi_xyz"] = torch.as_tensor(roi_xyz.astype("float32")).contiguous()
 
+        #if dataset_dict["file_name"] in ["datasets/custom/epose/test/000001/rgb/000000.png"]:
+            # cv2.imshow("xyz_crop", get_emb_show(dataset_dict["roi_xyz"].cpu().numpy().transpose(1, 2, 0)))
+            # cv2.waitKey(0)
         # pose targets ----------------------------------------------------------------------
         pose = inst_infos["pose"]
         allo_pose = egocentric_to_allocentric(pose)
@@ -700,6 +725,14 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
             raise ValueError(f"Unknown rot type: {pnp_net_cfg.ROT_TYPE}")
         dataset_dict["ego_rot"] = torch.as_tensor(pose[:3, :3].astype("float32"))
         dataset_dict["trans"] = torch.as_tensor(inst_infos["trans"].astype("float32"))
+        if dataset_dict["file_name"] in ["datasets/custom/epose/test/000001/rgb/000000.png"]:
+            if cfg.INPUT.DZI_SCALE_RATIO == 0:
+                with open("no_aug.txt", "a+") as f:
+                    f.write(dataset_dict["file_name"] + "\t" + str(dataset_dict["trans"]) + "\n")
+            else:
+                with open("aug.txt", "a+") as f:
+                    f.write(dataset_dict["file_name"] + "\t" + str(dataset_dict["trans"]) + "\n")
+        
 
         dataset_dict["roi_points"] = torch.as_tensor(self._get_model_points(dataset_name)[roi_cls].astype("float32"))
         dataset_dict["sym_info"] = self._get_sym_infos(dataset_name)[roi_cls]
@@ -720,6 +753,7 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
         obj_center = anno["centroid_2d"]
         delta_c = obj_center - bbox_center
         dataset_dict["trans_ratio"] = torch.as_tensor([delta_c[0] / bw, delta_c[1] / bh, z_ratio]).to(torch.float32)
+
         return dataset_dict
 
     def smooth_xyz(self, xyz):
@@ -853,3 +887,16 @@ def build_gdrn_test_loader(cfg, dataset_name, train_objs=None):
         dataset, batch_sampler=batch_sampler, collate_fn=trivial_batch_collator, **kwargs
     )
     return data_loader
+
+
+def normalize_to_01(img):
+    if img.max() != img.min():
+        return (img - img.min()) / (img.max() - img.min())
+    else:
+        return img
+
+
+def get_emb_show(bbox_emb):
+    show_emb = bbox_emb.copy()
+    show_emb = normalize_to_01(show_emb)
+    return show_emb
