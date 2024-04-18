@@ -557,6 +557,7 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
 
         for obj_name in self.gts:
             if obj_name not in self._predictions:
+                print("obj {} not in predictions".format(obj_name))
                 continue
             cur_label = self.obj_names.index(obj_name)
             if obj_name not in recalls:
@@ -582,14 +583,11 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
                 obj_preds[file_name], gt_anno = sort_boxes_by_iou(obj_preds[file_name], gt_anno)
                 for i in range(index):
                     instance=obj_preds[file_name][i]
-                    #print(instance["bbox"])
-                    #print(gt_anno[i]["bbox"])
                     R_pred = instance["R"]
                     t_pred = instance["t"]
                     
                     R_gt = gt_anno[i]["R"]
                     t_gt = gt_anno[i]["t"]
-                    #print(t_gt)
                     t_error = te(t_pred, t_gt)
 
                     if obj_name in cfg.DATASETS.SYM_OBJS:
@@ -639,7 +637,6 @@ class GDRN_EvaluatorCustom(DatasetEvaluator):
                     recalls[obj_name]["proj_2"].append(float(proj_2d_error < 2))
                     recalls[obj_name]["proj_5"].append(float(proj_2d_error < 5))
                     recalls[obj_name]["proj_10"].append(float(proj_2d_error < 10))
-                self.first = False
 
         # summarize
         obj_names = sorted(list(recalls.keys()))

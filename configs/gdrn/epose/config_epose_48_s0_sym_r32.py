@@ -5,6 +5,7 @@ INPUT = dict(
     SEGMENT=False,
     BLACK_PAD=False,
     RND_BG=False,
+    SCALEPOS = False,
     DZI_PAD_SCALE=1.5,
     COLOR_AUG_PROB=0.0,
     COLOR_AUG_TYPE="code",
