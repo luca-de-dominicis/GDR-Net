@@ -33,7 +33,7 @@ classes = sorted(classes)
 # DEPTH_FACTOR = 1000.
 IM_H = 480
 IM_W = 640
-near = 0.001
+near = 0.0001
 far = 60
 
 scenes = [i for i in range(0, 1)]
