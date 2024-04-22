@@ -502,6 +502,7 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
                         ).transpose(2, 0, 1)
 
                 # cv2.imshow("roi_img", roi_img.transpose(1, 2, 0).astype("uint8"))
+                # cv2.imshow("image", image)
                 # cv2.waitKey(0)
 
                 roi_img = self.normalize_image(cfg, roi_img)
@@ -578,16 +579,16 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
                 image, bbox_center, scale, input_res, interpolation=cv2.INTER_LINEAR,
                 ).transpose(2, 0, 1)
         roi_img = self.normalize_image(cfg, roi_img)
-        cv2.imshow("roi_img", roi_img.transpose(1, 2, 0))
+        #cv2.imshow("roi_img", roi_img.transpose(1, 2, 0))
         # roi_coord_2d ----------------------------------------------------
         roi_coord_2d = crop_resize_by_warp_affine(
             coord_2d, bbox_center, scale, out_res, interpolation=cv2.INTER_LINEAR
         ).transpose(2, 0, 1)
         # print(roi_coord_2d)
         # print(roi_coord_2d.shape)
-        cv2.imshow("roi_coord_2d0", roi_coord_2d.transpose(1, 2, 0)[:,:,0])
-        cv2.imshow("roi_coord_2d1", roi_coord_2d.transpose(1, 2, 0)[:,:,1])
-        cv2.waitKey(0)
+        # cv2.imshow("roi_coord_2d0", roi_coord_2d.transpose(1, 2, 0)[:,:,0])
+        # cv2.imshow("roi_coord_2d1", roi_coord_2d.transpose(1, 2, 0)[:,:,1])
+        # cv2.waitKey(0)
 
         ## roi_mask ---------------------------------------
         # (mask_trunc < mask_visib < mask_obj)
@@ -725,15 +726,6 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
             raise ValueError(f"Unknown rot type: {pnp_net_cfg.ROT_TYPE}")
         dataset_dict["ego_rot"] = torch.as_tensor(pose[:3, :3].astype("float32"))
         dataset_dict["trans"] = torch.as_tensor(inst_infos["trans"].astype("float32"))
-        if dataset_dict["file_name"] in ["datasets/custom/epose/test/000001/rgb/000000.png"]:
-            if cfg.INPUT.DZI_SCALE_RATIO == 0:
-                with open("no_aug.txt", "a+") as f:
-                    f.write(dataset_dict["file_name"] + "\t" + str(dataset_dict["trans"]) + "\n")
-            else:
-                with open("aug.txt", "a+") as f:
-                    f.write(dataset_dict["file_name"] + "\t" + str(dataset_dict["trans"]) + "\n")
-        
-
         dataset_dict["roi_points"] = torch.as_tensor(self._get_model_points(dataset_name)[roi_cls].astype("float32"))
         dataset_dict["sym_info"] = self._get_sym_infos(dataset_name)[roi_cls]
 
