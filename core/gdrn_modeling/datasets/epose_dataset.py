@@ -409,6 +409,65 @@ SPLITS_EPOSE = dict(
         filter_invalid=False,
         ref_key="epose_full",
     ),
+    epose_train_varcam_lowered=dict(
+        name="epose_train_varcam_lowered",
+        dataset_root=osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/"),
+        models_root=osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/models"),
+        objs=Epose__OBJECTS,  # selected objects
+        ann_files=[
+            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/image_set/{}_{}.txt".format(_obj, "train"))
+            for _obj in Epose__OBJECTS
+        ],
+        image_prefixes=[
+            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/test/{:06d}".format(ref.epose_full.obj2id[_obj]))
+            for _obj in Epose__OBJECTS
+        ],
+        xyz_prefixes=[
+            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
+            for _obj in Epose__OBJECTS
+        ],
+        scale_to_meter=0.001,
+        with_masks=True,  # (load masks but may not use it)
+        with_depth=True,  # (load depth path here, but may not use it)
+        height=480,
+        width=640,
+        cache_dir=osp.join(PROJ_ROOT, ".cache"),
+        use_cache=True,
+        num_to_load=-1,
+        filter_scene=True,
+        filter_invalid=True,
+        ref_key="epose_full",
+    ),
+    epose_test_varcam_lowered=dict(
+        name="epose_test_varcam_lowered",
+        dataset_root=osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/"),
+        models_root=osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/models"),
+        objs=Epose__OBJECTS,
+        ann_files=[
+            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/image_set/{}_{}.txt".format(_obj, "test"))
+            for _obj in Epose__OBJECTS
+        ],
+        # NOTE: scene root
+        image_prefixes=[
+            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/test/{:06d}").format(ref.epose_full.obj2id[_obj])
+            for _obj in Epose__OBJECTS
+        ],
+        xyz_prefixes=[
+            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
+            for _obj in Epose__OBJECTS
+        ],
+        scale_to_meter=0.001,
+        with_masks=True,  # (load masks but may not use it)
+        with_depth=True,  # (load depth path here, but may not use it)
+        height=480,
+        width=640,
+        cache_dir=osp.join(PROJ_ROOT, ".cache"),
+        use_cache=True,
+        num_to_load=-1,
+        filter_scene=True,
+        filter_invalid=False,
+        ref_key="epose_full",
+    ),
 )
 
 # single obj splits for epose real
