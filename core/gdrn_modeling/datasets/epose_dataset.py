@@ -30,9 +30,8 @@ class Epose_Dataset(object):
 
     def __init__(self, data_cfg):
         """
-        Set with_depth and with_masks default to True,
+        Set with_masks default to True,
         and decide whether to load them into dataloader/network later
-        with_masks:
         """
         self.name = data_cfg["name"]
         self.data_cfg = data_cfg
@@ -49,8 +48,7 @@ class Epose_Dataset(object):
         self.scale_to_meter = data_cfg["scale_to_meter"]  # 0.001
 
         self.with_masks = data_cfg["with_masks"]  # True (load masks but may not use it)
-        self.with_depth = data_cfg["with_depth"]  # True (load depth path here, but may not use it)
-
+        
         self.height = data_cfg["height"]  # 480
         self.width = data_cfg["width"]  # 640
 
@@ -65,6 +63,7 @@ class Epose_Dataset(object):
         # NOTE: careful! Only the selected objects
         self.cat_ids = [cat_id for cat_id, obj_name in ref.epose_full.id2obj.items() if obj_name in self.objs]
         # map selected objs to [0, num_objs-1]
+        # Category to label
         self.cat2label = {v: i for i, v in enumerate(self.cat_ids)}  # id_map
         self.label2cat = {label: cat for cat, label in self.cat2label.items()}
         self.obj2label = OrderedDict((obj, obj_id) for obj_id, obj in enumerate(self.objs))
@@ -81,8 +80,8 @@ class Epose_Dataset(object):
         hashed_file_name = hashlib.md5(
             (
                 "".join([str(fn) for fn in self.objs])
-                + "dataset_dicts_{}_{}_{}_{}_{}".format(
-                    self.name, self.dataset_root, self.with_masks, self.with_depth, __name__
+                + "dataset_dicts_{}_{}_{}_{}".format(
+                    self.name, self.dataset_root, self.with_masks, __name__
                 )
             ).encode("utf-8")
         ).hexdigest()
@@ -101,7 +100,7 @@ class Epose_Dataset(object):
         assert len(self.ann_files) == len(self.image_prefixes), f"{len(self.ann_files)} != {len(self.image_prefixes)}"
         assert len(self.ann_files) == len(self.xyz_prefixes), f"{len(self.ann_files)} != {len(self.xyz_prefixes)}"
         for ann_file, scene_root, xyz_root in zip(tqdm(self.ann_files), self.image_prefixes, self.xyz_prefixes):
-            # linemod each scene is an object
+
             with open(ann_file, "r") as f_ann:
                 indices = [line.strip("\r\n") for line in f_ann.readlines()]  # string ids
             gt_dict = mmcv.load(osp.join(scene_root, "scene_gt.json"))
@@ -113,14 +112,8 @@ class Epose_Dataset(object):
                 rgb_path = osp.join(scene_root, "rgb/{:06d}.png").format(int_im_id)
                 assert osp.exists(rgb_path), rgb_path
 
-                depth_path = osp.join(scene_root, "depth/{:06d}.png".format(int_im_id))
-
                 scene_id = int(rgb_path.split("/")[-3])
                 scene_im_id = f"{scene_id}/{int_im_id}"
-
-                if self.debug_im_id is not None:
-                    if self.debug_im_id != scene_im_id:
-                        continue
 
                 K = np.array(cam_dict[str_im_id]["cam_K"], dtype=np.float32).reshape(3, 3)
                 depth_factor = 1000.0 / cam_dict[str_im_id]["depth_scale"]
@@ -130,7 +123,6 @@ class Epose_Dataset(object):
                 record = {
                     "dataset_name": self.name,
                     "file_name": osp.relpath(rgb_path, PROJ_ROOT),
-                    "depth_file": osp.relpath(depth_path, PROJ_ROOT),
                     "height": self.height,
                     "width": self.width,
                     "image_id": int_im_id,
@@ -185,7 +177,7 @@ class Epose_Dataset(object):
                         "trans": t,
                         "centroid_2d": proj,  # absolute (cx, cy)
                         "segmentation": mask_rle,
-                        "mask_full_file": mask_file,  # TODO: load as mask_full, rle
+                        "mask_full_file": mask_file, 
                     }
                     if "test" not in self.name:
                         xyz_path = osp.join(xyz_root, f"{int_im_id:06d}_{anno_i:06d}-xyz.pkl")
@@ -287,7 +279,7 @@ def get_epose_metadata(obj_names, ref_key):
 
 
 Epose__OBJECTS = ["chiave_candela_19", "ugello_l80_90", "dado_m5", "vite_65"]
-Epose_OCC_OBJECTS = ["chiave_candela_19", "ugello_l80_90", "dado_m5", "vite_65"]
+Epose_OCC_OBJECTS = ["chiave_candela_19", "ugello_l80_90", "dado_m5", "vite_65"] # ALL the object can be occluded
 ################################################################################
 
 SPLITS_EPOSE = dict(
@@ -310,7 +302,6 @@ SPLITS_EPOSE = dict(
         ],
         scale_to_meter=0.001,
         with_masks=True,  # (load masks but may not use it)
-        with_depth=True,  # (load depth path here, but may not use it)
         height=480,
         width=640,
         cache_dir=osp.join(PROJ_ROOT, ".cache"),
@@ -340,7 +331,6 @@ SPLITS_EPOSE = dict(
         ],
         scale_to_meter=0.001,
         with_masks=True,  # (load masks but may not use it)
-        with_depth=True,  # (load depth path here, but may not use it)
         height=480,
         width=640,
         cache_dir=osp.join(PROJ_ROOT, ".cache"),
@@ -369,7 +359,6 @@ SPLITS_EPOSE = dict(
         ],
         scale_to_meter=0.001,
         with_masks=True,  # (load masks but may not use it)
-        with_depth=True,  # (load depth path here, but may not use it)
         height=480,
         width=640,
         cache_dir=osp.join(PROJ_ROOT, ".cache"),
@@ -399,7 +388,6 @@ SPLITS_EPOSE = dict(
         ],
         scale_to_meter=0.001,
         with_masks=True,  # (load masks but may not use it)
-        with_depth=True,  # (load depth path here, but may not use it)
         height=480,
         width=640,
         cache_dir=osp.join(PROJ_ROOT, ".cache"),
@@ -428,7 +416,6 @@ SPLITS_EPOSE = dict(
         ],
         scale_to_meter=0.001,
         with_masks=True,  # (load masks but may not use it)
-        with_depth=True,  # (load depth path here, but may not use it)
         height=480,
         width=640,
         cache_dir=osp.join(PROJ_ROOT, ".cache"),
@@ -458,7 +445,63 @@ SPLITS_EPOSE = dict(
         ],
         scale_to_meter=0.001,
         with_masks=True,  # (load masks but may not use it)
-        with_depth=True,  # (load depth path here, but may not use it)
+        height=480,
+        width=640,
+        cache_dir=osp.join(PROJ_ROOT, ".cache"),
+        use_cache=True,
+        num_to_load=-1,
+        filter_scene=True,
+        filter_invalid=False,
+        ref_key="epose_full",
+    ),
+    epose_train_40=dict(
+        name="epose_train_40",
+        dataset_root=osp.join(DATASETS_ROOT, "custom/epose_40/"),
+        models_root=osp.join(DATASETS_ROOT, "custom/epose_40/models"),
+        objs=Epose__OBJECTS,  # selected objects
+        ann_files=[
+            osp.join(DATASETS_ROOT, "custom/epose_40/image_set/{}_{}.txt".format(_obj, "train"))
+            for _obj in Epose__OBJECTS
+        ],
+        image_prefixes=[
+            osp.join(DATASETS_ROOT, "custom/epose_40/test/{:06d}".format(ref.epose_full.obj2id[_obj]))
+            for _obj in Epose__OBJECTS
+        ],
+        xyz_prefixes=[
+            osp.join(DATASETS_ROOT, "custom/epose_40/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
+            for _obj in Epose__OBJECTS
+        ],
+        scale_to_meter=0.001,
+        with_masks=True,  # (load masks but may not use it)
+        height=480,
+        width=640,
+        cache_dir=osp.join(PROJ_ROOT, ".cache"),
+        use_cache=True,
+        num_to_load=-1,
+        filter_scene=True,
+        filter_invalid=True,
+        ref_key="epose_full",
+    ),
+    epose_test_40=dict(
+        name="epose_test_40",
+        dataset_root=osp.join(DATASETS_ROOT, "custom/epose_40/"),
+        models_root=osp.join(DATASETS_ROOT, "custom/epose_40/models"),
+        objs=Epose__OBJECTS,
+        ann_files=[
+            osp.join(DATASETS_ROOT, "custom/epose_40/image_set/{}_{}.txt".format(_obj, "test"))
+            for _obj in Epose__OBJECTS
+        ],
+        # NOTE: scene root
+        image_prefixes=[
+            osp.join(DATASETS_ROOT, "custom/epose_40/test/{:06d}").format(ref.epose_full.obj2id[_obj])
+            for _obj in Epose__OBJECTS
+        ],
+        xyz_prefixes=[
+            osp.join(DATASETS_ROOT, "custom/epose_40/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
+            for _obj in Epose__OBJECTS
+        ],
+        scale_to_meter=0.001,
+        with_masks=True,  # (load masks but may not use it)
         height=480,
         width=640,
         cache_dir=osp.join(PROJ_ROOT, ".cache"),
@@ -470,32 +513,30 @@ SPLITS_EPOSE = dict(
     ),
 )
 
-# single obj splits for epose real
-'''
-for obj in ref.epose_full_full.objects:
+# single obj splits for epose
+for obj in ref.epose_full.objects:
     for split in ["train", "test", "all"]:
-        name = "lm_real_{}_{}".format(obj, split)
-        ann_files = [osp.join(DATASETS_ROOT, "BOP_DATASETS/lm/image_set/{}_{}.txt".format(obj, split))]
+        name = "epose_40_{}_{}".format(obj, split)
+        ann_files = [osp.join(DATASETS_ROOT, "custom/epose_40/image_set/{}_{}.txt".format(obj, split))]
         if split in ["train", "all"]:  # all is used to train lmo
             filter_invalid = True
         elif split in ["test"]:
             filter_invalid = False
         else:
             raise ValueError("{}".format(split))
-        if name not in SPLITS_LM:
-            SPLITS_LM[name] = dict(
+        if name not in SPLITS_EPOSE:
+            SPLITS_EPOSE[name] = dict(
                 name=name,
-                dataset_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/lm/"),
-                models_root=osp.join(DATASETS_ROOT, "BOP_DATASETS/lm/models"),
+                dataset_root=osp.join(DATASETS_ROOT, "custom/epose_40/"),
+                models_root=osp.join(DATASETS_ROOT, "custom/epose_40/models"),
                 objs=[obj],  # only this obj
                 ann_files=ann_files,
-                image_prefixes=[osp.join(DATASETS_ROOT, "BOP_DATASETS/lm/test/{:06d}").format(ref.lm_full.obj2id[obj])],
+                image_prefixes=[osp.join(DATASETS_ROOT, "custom/epose_40/test/{:06d}").format(ref.epose_full.obj2id[obj])],
                 xyz_prefixes=[
-                    osp.join(DATASETS_ROOT, "BOP_DATASETS/lm/test/xyz_crop/{:06d}".format(ref.lm_full.obj2id[obj]))
+                    osp.join(DATASETS_ROOT, "custom/epose_40/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[obj]))
                 ],
                 scale_to_meter=0.001,
                 with_masks=True,  # (load masks but may not use it)
-                with_depth=True,  # (load depth path here, but may not use it)
                 height=480,
                 width=640,
                 cache_dir=osp.join(PROJ_ROOT, ".cache"),
@@ -503,9 +544,10 @@ for obj in ref.epose_full_full.objects:
                 num_to_load=-1,
                 filter_invalid=filter_invalid,
                 filter_scene=True,
-                ref_key="lm_full",
+                ref_key="epose_full",
             )
 
+'''
 # single obj splits for lmo_test
 for obj in ref.lmo_full.objects:
     for split in ["test"]:
@@ -603,7 +645,6 @@ for obj in ref.epose_full.objects:
                     ],
                     scale_to_meter=0.001,
                     with_masks=True,  # (load masks but may not use it)
-                    with_depth=True,  # (load depth path here, but may not use it)
                     height=480,
                     width=640,
                     cache_dir=osp.join(PROJ_ROOT, ".cache"),
@@ -647,101 +688,6 @@ def get_available_datasets():
     return list(SPLITS_EPOSE.keys())
 
 
-#### tests ###############################################
-def test_vis():
-    dset_name = sys.argv[1]
-    assert dset_name in DatasetCatalog.list()
-
-    meta = MetadataCatalog.get(dset_name)
-    dprint("MetadataCatalog: ", meta)
-    objs = meta.objs
-
-    t_start = time.perf_counter()
-    dicts = DatasetCatalog.get(dset_name)
-    logger.info("Done loading {} samples with {:.3f}s.".format(len(dicts), time.perf_counter() - t_start))
-
-    dirname = "output/{}-data-vis".format(dset_name)
-    os.makedirs(dirname, exist_ok=True)
-    for d in dicts:
-        img = read_image_cv2(d["file_name"], format="BGR")
-        depth = mmcv.imread(d["depth_file"], "unchanged") / 1000.0
-
-        imH, imW = img.shape[:2]
-        annos = d["annotations"]
-        masks = [cocosegm2mask(anno["segmentation"], imH, imW) for anno in annos]
-        bboxes = [anno["bbox"] for anno in annos]
-        bbox_modes = [anno["bbox_mode"] for anno in annos]
-        bboxes_xyxy = np.array(
-            [BoxMode.convert(box, box_mode, BoxMode.XYXY_ABS) for box, box_mode in zip(bboxes, bbox_modes)]
-        )
-        kpts_3d_list = [anno["bbox3d_and_center"] for anno in annos]
-        quats = [anno["quat"] for anno in annos]
-        transes = [anno["trans"] for anno in annos]
-        Rs = [quat2mat(quat) for quat in quats]
-        # 0-based label
-        cat_ids = [anno["category_id"] for anno in annos]
-        K = d["cam"]
-        kpts_2d = [misc.project_pts(kpt3d, K, R, t) for kpt3d, R, t in zip(kpts_3d_list, Rs, transes)]
-        # # TODO: visualize pose and keypoints
-        labels = [objs[cat_id] for cat_id in cat_ids]
-        for _i in range(len(annos)):
-            img_vis = vis_image_mask_bbox_cv2(
-                img, masks[_i : _i + 1], bboxes=bboxes_xyxy[_i : _i + 1], labels=labels[_i : _i + 1]
-            )
-            img_vis_kpts2d = misc.draw_projected_box3d(img_vis.copy(), kpts_2d[_i])
-            if "test" not in dset_name:
-                xyz_path = annos[_i]["xyz_path"]
-                xyz_info = mmcv.load(xyz_path)
-                x1, y1, x2, y2 = xyz_info["xyxy"]
-                xyz_crop = xyz_info["xyz_crop"].astype(np.float32)
-                xyz = np.zeros((imH, imW, 3), dtype=np.float32)
-                xyz[y1 : y2 + 1, x1 : x2 + 1, :] = xyz_crop
-                xyz_show = get_emb_show(xyz)
-                xyz_crop_show = get_emb_show(xyz_crop)
-                img_xyz = img.copy() / 255.0
-                mask_xyz = ((xyz[:, :, 0] != 0) | (xyz[:, :, 1] != 0) | (xyz[:, :, 2] != 0)).astype("uint8")
-                fg_idx = np.where(mask_xyz != 0)
-                img_xyz[fg_idx[0], fg_idx[1], :] = xyz_show[fg_idx[0], fg_idx[1], :3]
-                img_xyz_crop = img_xyz[y1 : y2 + 1, x1 : x2 + 1, :]
-                img_vis_crop = img_vis[y1 : y2 + 1, x1 : x2 + 1, :]
-                # diff mask
-                diff_mask_xyz = np.abs(masks[_i] - mask_xyz)[y1 : y2 + 1, x1 : x2 + 1]
-
-                grid_show(
-                    [
-                        img[:, :, [2, 1, 0]],
-                        img_vis[:, :, [2, 1, 0]],
-                        img_vis_kpts2d[:, :, [2, 1, 0]],
-                        depth,
-                        # xyz_show,
-                        diff_mask_xyz,
-                        xyz_crop_show,
-                        img_xyz[:, :, [2, 1, 0]],
-                        img_xyz_crop[:, :, [2, 1, 0]],
-                        img_vis_crop,
-                    ],
-                    [
-                        "img",
-                        "vis_img",
-                        "img_vis_kpts2d",
-                        "depth",
-                        "diff_mask_xyz",
-                        "xyz_crop_show",
-                        "img_xyz",
-                        "img_xyz_crop",
-                        "img_vis_crop",
-                    ],
-                    row=3,
-                    col=3,
-                )
-            else:
-                grid_show(
-                    [img[:, :, [2, 1, 0]], img_vis[:, :, [2, 1, 0]], img_vis_kpts2d[:, :, [2, 1, 0]], depth],
-                    ["img", "vis_img", "img_vis_kpts2d", "depth"],
-                    row=2,
-                    col=2,
-                )
-
 
 if __name__ == "__main__":
     """Test the  dataset loader.
@@ -761,4 +707,3 @@ if __name__ == "__main__":
     register_with_name_cfg(sys.argv[1])
     print("dataset catalog: ", DatasetCatalog.list())
 
-    test_vis()
