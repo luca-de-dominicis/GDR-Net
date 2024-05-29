@@ -19,10 +19,16 @@ from lib.pysixd import misc
 from lib.utils.mask_utils import mask2bbox_xyxy
 
 idx2class = {
-    1: "chiave_candela_19",
+    1: "tubetto_m1200",
     2: "ugello_l80_90",
     3: "dado_m5",
     4: "vite_65",
+    5: "vite_20",
+    6: "chiave_brugola_6",
+    7: "deviatore_boccaglio",
+    8: "chiave_candela_19",
+    9: "chiave_fissa_8_10",
+    10: "fascetta_68_73",
 }
 
 class2idx = {_name: _id for _id, _name in idx2class.items()}
@@ -34,11 +40,21 @@ classes = sorted(classes)
 IM_H = 480
 IM_W = 640
 near = 0.0001
-far = 60
+far = 600
 
 scenes = [i for i in range(0, 1)]
 
-K = np.array([[320, 0.0, 320.0], [0.0, 320, 240.0], [0.0, 0.0, 1.0]])
+K = np.array([
+            608.219957982,
+            0.0,
+            320.0,
+            0.0,
+            631.389475612,
+            240.0,
+            0.0,
+            0.0,
+            1.0
+        ]).reshape(3, 3)
 
 def normalize_to_01(img):
     if img.max() != img.min():
@@ -102,7 +118,6 @@ class XyzGen(object):
             gt_dict = mmcv.load(osp.join(scene_root, "scene_gt.json"))
             # gt_info_dict = mmcv.load(osp.join(scene_root, "scene_gt_info.json"))
             # cam_dict = mmcv.load(osp.join(scene_root, "scene_camera.json"))
-
             for str_im_id in tqdm(gt_dict, postfix=f"{scene_id}"):
                 int_im_id = int(str_im_id)
 

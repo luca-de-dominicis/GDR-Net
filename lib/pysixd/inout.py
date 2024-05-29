@@ -650,7 +650,10 @@ def load_ply(path, vertex_scale=1.0):
         prop_vals = {}
         if is_binary:
             for prop in face_props:
-                format = formats[prop[1]]
+                try:
+                    format = formats[prop[1]]
+                except KeyError:
+                    format = formats["int"]
                 val = struct.unpack(format[0], f.read(format[1]))[0]
                 if prop[0] == "n_corners":
                     if val != face_n_corners:

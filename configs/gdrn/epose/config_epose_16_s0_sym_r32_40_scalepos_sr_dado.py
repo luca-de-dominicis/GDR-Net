@@ -1,15 +1,14 @@
 _base_ = ["../../_base_/gdrn_base.py"]
 SEED = 0
-OUTPUT_DIR = "output/gdrn/epose/config_epose_48_s0_sym_r32_var_cam_standardsegmented_positiveshift"
+OUTPUT_DIR = "output/gdrn/epose/config_epose_16_s0_sym_r32_40_scalepos_sr_dado"
 INPUT = dict(
-    SEGMENT=True,
+    SEGMENT=False,
     BLACK_PAD=False,
     RND_BG=False,
-    SCALEPOS=True,
+    SCALEPOS = True,
     DZI_PAD_SCALE=1,
     DZI_SCALE_RATIO=0.25,  # wh scale
     DZI_SHIFT_RATIO=0,  # center shift
-    CHANGE_BG_PROB=0.5,
     COLOR_AUG_PROB=0.0,
     COLOR_AUG_TYPE="code",
     COLOR_AUG_CODE=(
@@ -25,9 +24,8 @@ INPUT = dict(
         "], random_order=False)"
     ),
 )
-
 SOLVER = dict(
-    IMS_PER_BATCH=48,
+    IMS_PER_BATCH=16,
     LR_SCHEDULER_NAME="flat_and_anneal",
     ANNEAL_METHOD="cosine",  # "cosine"
     ANNEAL_POINT=0.72,
@@ -38,9 +36,11 @@ SOLVER = dict(
     WARMUP_ITERS=1000,
 )
 
+#DATALOADER = dict(NUM_WORKERS=1,)
+
 DATASETS = dict(
-    TRAIN=("epose_train_varcam",), # TODO: MODIFY THE SECOND TRAIN SET
-    TEST=("epose_test_varcam",),
+    TRAIN=("epose_40_dado_m5_train",), # TODO: MODIFY THE SECOND TRAIN SET
+    TEST=("epose_40_dado_m5_test",),
     # DET_FILES_TEST=("datasets/custom/epose/test/test_bboxes/bbox_faster_all.json",), TODO: GENERATE FILE USING YOLO ?
     SYM_OBJS=["ugello_l80_90", "dado_m5", "vite_65"],
 )

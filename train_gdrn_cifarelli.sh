@@ -22,4 +22,4 @@ while true; do
         * ) echo "Please answer yes or no.";;
     esac
 done
-./core/gdrn_modeling/train_gdrn.sh /data/repos/GDR-Net/configs/gdrn/epose/config_epose_16_s0_sym_r32_40_scalepos_sr_dado.py 0
+./core/gdrn_modeling/train_gdrn.sh /data/repos/GDR-Net/configs/gdrn/cifarelli/config_cifarelli_public_16_s0_sym_r32_40_scalepos.py 0

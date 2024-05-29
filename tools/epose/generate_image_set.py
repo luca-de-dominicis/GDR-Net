@@ -1,7 +1,7 @@
 import os
 import random
 import argparse
-
+import json
 # The script creates the folder image_set for the epose dataset.
 # The folder image_set contains for each class the list of images that belong to that class, and for each split.
 parser = argparse.ArgumentParser()
@@ -12,7 +12,7 @@ args = parser.parse_args()
 assert args.path is not None or args.path != "", "Please specify the path to the epose dataset"
 
 image_set_path = args.path + "/image_set"
-images_path = args.path + "/test/000001/rgb/"
+images_path = args.path + "rgb/"
 
 # Split the whole list in train and test, with a configurable ratio
 def train_test_list(origin_list, ratio=0.2):
@@ -22,28 +22,26 @@ def train_test_list(origin_list, ratio=0.2):
     test_list = origin_list[:split_idx]
     return train_list, test_list
 
-class_names = ["chiave_candela_19", "ugello_l80_90", "dado_m5", "vite_65"]
+class_names = ["tubetto_m1200", "ugello_l80_99", "dado_m5", "vite_65", "vite_20", "chiave_brugola_6", "deviatore_boccaglio", "chiave_candela_19", "chiave_fissa_8_10", "fascetta_68_73"]
 splits = ["all", "train", "test"]
 
 # check for the existence of the directory
-if not os.path.exists("image_set"):
-    os.mkdir(image_set_path)
+if not os.path.exists(image_set_path):
+    os.makedirs(image_set_path, exist_ok=True)
 
 
-original_list = os.listdir(images_path) # lists all the images in the dataset
-original_list = [name[:-4] for name in original_list]
-train_list, test_list = train_test_list(original_list, ratio=0.2)
-train_list = sorted(train_list)
-test_list = sorted(test_list)
+lists = []
+for i in range(len(class_names)):
+    with open(f"{args.path}/test/{str(i + 1).zfill(6)}/scene_gt.json", "r") as f:
+        data = json.load(f)
+        lists.append(list(data.keys()))
 
-for class_name in class_names:
-    for split in splits:
-        with open(f"{image_set_path}/{class_name}_{split}.txt", "w") as f:
-            if split == "all":
-                f.write("\n".join(original_list))
-            elif split == "train":
-                f.write("\n".join(train_list))
-            elif split == "test":
-                f.write("\n".join(test_list))
-            f.close()
-        
+for i in range(len(class_names)):
+    train, test = train_test_list(lists[i])
+    with open(f"{image_set_path}/{class_names[i]}_train.txt", "w") as f:
+        f.write("\n".join(train))
+        f.close()
+    with open(f"{image_set_path}/{class_names[i]}_test.txt", "w") as f:
+        f.write("\n".join(test))
+        f.close()
+    

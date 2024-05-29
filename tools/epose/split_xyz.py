@@ -17,20 +17,30 @@ flat_image_counts = set()
 
 print("Collecting image numbers...")
 for file in crop_path.glob("*"):
-    print(file.name)
     flat_image_counts.add(file.name.split("_")[0])
 
 flat_list = sorted(list(flat_image_counts))
-
+idx2class = {
+    1: "tubetto_m1200",
+    2: "ugello_l80_90",
+    3: "dado_m5",
+    4: "vite_65",
+    5: "vite_20",
+    6: "chiave_brugola_6",
+    7: "deviatore_boccaglio",
+    8: "chiave_candela_19",
+    9: "chiave_fissa_8_10",
+    10: "fascetta_68_73",
+}
 how_many = {}
-how_many["1"] = {}
-how_many["2"] = {}
-how_many["3"] = {}
-how_many["4"] = {}
+for i in range(1,len(idx2class.keys()) + 1):
+    how_many[str(i)] = {}
+
+print(how_many)
 
 print("Counting instances of each image...")
-for i in range(1,5):
-    folder = dataset_path / f"00000{i}" / "mask"
+for i in range(1, len(idx2class.keys()) + 1):
+    folder = dataset_path / str(i).zfill(6) / "mask"
     for file in folder.glob("*"):
         if file.name.split("_")[0] in flat_list:
             how_many[str(i)][file.name.split("_")[0]] = how_many[str(i)].get(file.name.split("_")[0], 0) + 1
@@ -41,7 +51,7 @@ destination_root = dataset_path / "xyz_crop"
 
 print("Copying files...")
 # Create destination folders if they don't exist
-for i in range(1, 5):
+for i in range(1, len(idx2class.keys()) + 1):
     (destination_root / f"{str(i).zfill(6)}").mkdir(parents=True, exist_ok=True)
 
 # Function to copy files to the corresponding folder based on how_many
@@ -49,8 +59,9 @@ def copy_files_based_on_count():
     arrived = {}
     for image in flat_list:
         arrived[image] = 0
-    for i in range(1, 5):  # For each of the 4 folders
+    for i in range(1, len(idx2class.keys()) + 1):  # For each of the 4 folders
         folder = f"{str(i).zfill(6)}"
+        print(i)
         for image_number, count in how_many[str(i)].items():
             for j in range(count):
                 shutil.copy(crop_path / f"{image_number}_{str(arrived[image_number]).zfill(6)}-xyz.pkl", destination_root / folder / f"{image_number}_{str(j).zfill(6)}-xyz.pkl")

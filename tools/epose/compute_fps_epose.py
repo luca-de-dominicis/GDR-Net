@@ -13,7 +13,7 @@ import argparse
 
 
 #model_dir = ref.epose_full.model_dir
-id2obj = ref.epose_full.id2obj
+id2obj = ref.cifarelli_full.id2obj
 
 
 def main(path):

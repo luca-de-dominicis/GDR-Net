@@ -6,6 +6,7 @@ import sys
 
 cur_dir = osp.dirname(osp.abspath(__file__))
 PROJ_ROOT = osp.normpath(osp.join(cur_dir, "../../.."))
+print(PROJ_ROOT)
 sys.path.insert(0, PROJ_ROOT)
 import time
 from collections import OrderedDict
@@ -38,9 +39,10 @@ class Epose_Dataset(object):
 
         self.objs = data_cfg["objs"]  # selected objects
 
-        self.ann_files = data_cfg["ann_files"]  # idx files with image ids
-        self.image_prefixes = data_cfg["image_prefixes"]
+        self.ann_file = data_cfg["ann_file"]  # idx files with image ids
+        self.folder_prefixes = data_cfg["folder_prefixes"]
         self.xyz_prefixes = data_cfg["xyz_prefixes"]
+        self.image_prefix = data_cfg["image_prefix"]
 
         self.dataset_root = data_cfg["dataset_root"]  # custom/epose/
         assert osp.exists(self.dataset_root), self.dataset_root
@@ -97,22 +99,19 @@ class Epose_Dataset(object):
         self.num_instances_without_valid_segmentation = 0
         self.num_instances_without_valid_box = 0
         dataset_dicts = []  # ######################################################
-        assert len(self.ann_files) == len(self.image_prefixes), f"{len(self.ann_files)} != {len(self.image_prefixes)}"
-        assert len(self.ann_files) == len(self.xyz_prefixes), f"{len(self.ann_files)} != {len(self.xyz_prefixes)}"
-        for ann_file, scene_root, xyz_root in zip(tqdm(self.ann_files), self.image_prefixes, self.xyz_prefixes):
-
-            with open(ann_file, "r") as f_ann:
-                indices = [line.strip("\r\n") for line in f_ann.readlines()]  # string ids
+        with open(self.ann_file, "r") as f_ann:
+            indices = [line.strip("\r\n") for line in f_ann.readlines()]  # string ids
+        for scene_root, xyz_root in zip(tqdm(self.folder_prefixes), self.xyz_prefixes):
             gt_dict = mmcv.load(osp.join(scene_root, "scene_gt.json"))
             gt_info_dict = mmcv.load(osp.join(scene_root, "scene_gt_info.json"))  # bbox_obj, bbox_visib
             cam_dict = mmcv.load(osp.join(scene_root, "scene_camera.json"))
             for im_id in tqdm(indices):
                 int_im_id = int(im_id)
                 str_im_id = str(int_im_id)
-                rgb_path = osp.join(scene_root, "rgb/{:06d}.png").format(int_im_id)
-                assert osp.exists(rgb_path), rgb_path
+                rgb_path = osp.join(self.image_prefix, "{:06d}.png").format(int_im_id)
+                assert osp.exists(rgb_path), (rgb_path, self.image_prefix)
 
-                scene_id = int(rgb_path.split("/")[-3])
+                scene_id = int(scene_root.split("/")[-1])
                 scene_im_id = f"{scene_id}/{int_im_id}"
 
                 K = np.array(cam_dict[str_im_id]["cam_K"], dtype=np.float32).reshape(3, 3)
@@ -283,21 +282,19 @@ Epose_OCC_OBJECTS = ["chiave_candela_19", "ugello_l80_90", "dado_m5", "vite_65"]
 ################################################################################
 
 SPLITS_EPOSE = dict(
-    epose_train=dict(
-        name="epose_train",
-        dataset_root=osp.join(DATASETS_ROOT, "custom/epose/"),
+    cifarelli_train=dict(
+        name="cifarelli_train",
+        dataset_root=osp.join(DATASETS_ROOT, "custom/cifarelli_DS/"),
         models_root=osp.join(DATASETS_ROOT, "custom/epose/models"),
         objs=Epose__OBJECTS,  # selected objects
-        ann_files=[
-            osp.join(DATASETS_ROOT, "custom/epose/image_set/{}_{}.txt".format(_obj, "train"))
+        ann_file=osp.join(DATASETS_ROOT,"custom/cifarelli_DS/image_set/train.txt"),
+        folder_prefixes=[
+            osp.join(DATASETS_ROOT, "custom/cifarelli_DS/test/{:06d}").format(ref.epose_full.obj2id[_obj])
             for _obj in Epose__OBJECTS
         ],
-        image_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/epose/test/{:06d}".format(ref.epose_full.obj2id[_obj]))
-            for _obj in Epose__OBJECTS
-        ],
+        image_prefix=osp.join(DATASETS_ROOT,"custom/cifarelli_DS/rgb/"),
         xyz_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/epose/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
+            osp.join(DATASETS_ROOT, "custom/cifarelli_DS/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
             for _obj in Epose__OBJECTS
         ],
         scale_to_meter=0.001,
@@ -311,50 +308,19 @@ SPLITS_EPOSE = dict(
         filter_invalid=True,
         ref_key="epose_full",
     ),
-    epose_test=dict(
-        name="epose_test",
-        dataset_root=osp.join(DATASETS_ROOT, "custom/epose/"),
+    cifarelli_test=dict(
+        name="cifarelli_test",
+        dataset_root=osp.join(DATASETS_ROOT, "custom/cifarelli_DS/"),
         models_root=osp.join(DATASETS_ROOT, "custom/epose/models"),
-        objs=Epose__OBJECTS,
-        ann_files=[
-            osp.join(DATASETS_ROOT, "custom/epose/image_set/{}_{}.txt".format(_obj, "test"))
-            for _obj in Epose__OBJECTS
-        ],
-        # NOTE: scene root
-        image_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/epose/test/{:06d}").format(ref.epose_full.obj2id[_obj])
-            for _obj in Epose__OBJECTS
-        ],
-        xyz_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/epose/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
-            for _obj in Epose__OBJECTS
-        ],
-        scale_to_meter=0.001,
-        with_masks=True,  # (load masks but may not use it)
-        height=480,
-        width=640,
-        cache_dir=osp.join(PROJ_ROOT, ".cache"),
-        use_cache=True,
-        num_to_load=-1,
-        filter_scene=True,
-        filter_invalid=False,
-        ref_key="epose_full",
-    ),
-    epose_train_varcam=dict(
-        name="epose_train_varcam",
-        dataset_root=osp.join(DATASETS_ROOT, "custom/cifarelli_varcam/"),
-        models_root=osp.join(DATASETS_ROOT, "custom/cifarelli_varcam/models"),
         objs=Epose__OBJECTS,  # selected objects
-        ann_files=[
-            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam/image_set/{}_{}.txt".format(_obj, "train"))
+        ann_file=osp.join(DATASETS_ROOT,"custom/cifarelli_DS/image_set/test.txt"),
+        folder_prefixes=[
+            osp.join(DATASETS_ROOT, "custom/cifarelli_DS/test/{:06d}").format(ref.epose_full.obj2id[_obj])
             for _obj in Epose__OBJECTS
         ],
-        image_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam/test/{:06d}".format(ref.epose_full.obj2id[_obj]))
-            for _obj in Epose__OBJECTS
-        ],
+        image_prefix=osp.join(DATASETS_ROOT,"custom/cifarelli_DS/rgb/"),
         xyz_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
+            osp.join(DATASETS_ROOT, "custom/cifarelli_DS/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
             for _obj in Epose__OBJECTS
         ],
         scale_to_meter=0.001,
@@ -366,149 +332,6 @@ SPLITS_EPOSE = dict(
         num_to_load=-1,
         filter_scene=True,
         filter_invalid=True,
-        ref_key="epose_full",
-    ),
-    epose_test_varcam=dict(
-        name="epose_test_varcam",
-        dataset_root=osp.join(DATASETS_ROOT, "custom/cifarelli_varcam/"),
-        models_root=osp.join(DATASETS_ROOT, "custom/cifarelli_varcam/models"),
-        objs=Epose__OBJECTS,
-        ann_files=[
-            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam/image_set/{}_{}.txt".format(_obj, "test"))
-            for _obj in Epose__OBJECTS
-        ],
-        # NOTE: scene root
-        image_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam/test/{:06d}").format(ref.epose_full.obj2id[_obj])
-            for _obj in Epose__OBJECTS
-        ],
-        xyz_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
-            for _obj in Epose__OBJECTS
-        ],
-        scale_to_meter=0.001,
-        with_masks=True,  # (load masks but may not use it)
-        height=480,
-        width=640,
-        cache_dir=osp.join(PROJ_ROOT, ".cache"),
-        use_cache=True,
-        num_to_load=-1,
-        filter_scene=True,
-        filter_invalid=False,
-        ref_key="epose_full",
-    ),
-    epose_train_varcam_lowered=dict(
-        name="epose_train_varcam_lowered",
-        dataset_root=osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/"),
-        models_root=osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/models"),
-        objs=Epose__OBJECTS,  # selected objects
-        ann_files=[
-            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/image_set/{}_{}.txt".format(_obj, "train"))
-            for _obj in Epose__OBJECTS
-        ],
-        image_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/test/{:06d}".format(ref.epose_full.obj2id[_obj]))
-            for _obj in Epose__OBJECTS
-        ],
-        xyz_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
-            for _obj in Epose__OBJECTS
-        ],
-        scale_to_meter=0.001,
-        with_masks=True,  # (load masks but may not use it)
-        height=480,
-        width=640,
-        cache_dir=osp.join(PROJ_ROOT, ".cache"),
-        use_cache=True,
-        num_to_load=-1,
-        filter_scene=True,
-        filter_invalid=True,
-        ref_key="epose_full",
-    ),
-    epose_test_varcam_lowered=dict(
-        name="epose_test_varcam_lowered",
-        dataset_root=osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/"),
-        models_root=osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/models"),
-        objs=Epose__OBJECTS,
-        ann_files=[
-            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/image_set/{}_{}.txt".format(_obj, "test"))
-            for _obj in Epose__OBJECTS
-        ],
-        # NOTE: scene root
-        image_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/test/{:06d}").format(ref.epose_full.obj2id[_obj])
-            for _obj in Epose__OBJECTS
-        ],
-        xyz_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/cifarelli_varcam_lowered/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
-            for _obj in Epose__OBJECTS
-        ],
-        scale_to_meter=0.001,
-        with_masks=True,  # (load masks but may not use it)
-        height=480,
-        width=640,
-        cache_dir=osp.join(PROJ_ROOT, ".cache"),
-        use_cache=True,
-        num_to_load=-1,
-        filter_scene=True,
-        filter_invalid=False,
-        ref_key="epose_full",
-    ),
-    epose_train_40=dict(
-        name="epose_train_40",
-        dataset_root=osp.join(DATASETS_ROOT, "custom/epose_40/"),
-        models_root=osp.join(DATASETS_ROOT, "custom/epose_40/models"),
-        objs=Epose__OBJECTS,  # selected objects
-        ann_files=[
-            osp.join(DATASETS_ROOT, "custom/epose_40/image_set/{}_{}.txt".format(_obj, "train"))
-            for _obj in Epose__OBJECTS
-        ],
-        image_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/epose_40/test/{:06d}".format(ref.epose_full.obj2id[_obj]))
-            for _obj in Epose__OBJECTS
-        ],
-        xyz_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/epose_40/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
-            for _obj in Epose__OBJECTS
-        ],
-        scale_to_meter=0.001,
-        with_masks=True,  # (load masks but may not use it)
-        height=480,
-        width=640,
-        cache_dir=osp.join(PROJ_ROOT, ".cache"),
-        use_cache=True,
-        num_to_load=-1,
-        filter_scene=True,
-        filter_invalid=True,
-        ref_key="epose_full",
-    ),
-    epose_test_40=dict(
-        name="epose_test_40",
-        dataset_root=osp.join(DATASETS_ROOT, "custom/epose_40/"),
-        models_root=osp.join(DATASETS_ROOT, "custom/epose_40/models"),
-        objs=Epose__OBJECTS,
-        ann_files=[
-            osp.join(DATASETS_ROOT, "custom/epose_40/image_set/{}_{}.txt".format(_obj, "test"))
-            for _obj in Epose__OBJECTS
-        ],
-        # NOTE: scene root
-        image_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/epose_40/test/{:06d}").format(ref.epose_full.obj2id[_obj])
-            for _obj in Epose__OBJECTS
-        ],
-        xyz_prefixes=[
-            osp.join(DATASETS_ROOT, "custom/epose_40/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
-            for _obj in Epose__OBJECTS
-        ],
-        scale_to_meter=0.001,
-        with_masks=True,  # (load masks but may not use it)
-        height=480,
-        width=640,
-        cache_dir=osp.join(PROJ_ROOT, ".cache"),
-        use_cache=True,
-        num_to_load=-1,
-        filter_scene=True,
-        filter_invalid=False,
         ref_key="epose_full",
     ),
 )
@@ -516,8 +339,8 @@ SPLITS_EPOSE = dict(
 # single obj splits for epose
 for obj in ref.epose_full.objects:
     for split in ["train", "test", "all"]:
-        name = "epose_40_{}_{}".format(obj, split)
-        ann_files = [osp.join(DATASETS_ROOT, "custom/epose_40/image_set/{}_{}.txt".format(obj, split))]
+        name = "cifarelli_{}_{}".format(obj, split)
+        ann_files = "custom/epose_40/image_set/{}.txt".format(split)
         if split in ["train", "all"]:  # all is used to train lmo
             filter_invalid = True
         elif split in ["test"]:
@@ -527,13 +350,18 @@ for obj in ref.epose_full.objects:
         if name not in SPLITS_EPOSE:
             SPLITS_EPOSE[name] = dict(
                 name=name,
-                dataset_root=osp.join(DATASETS_ROOT, "custom/epose_40/"),
-                models_root=osp.join(DATASETS_ROOT, "custom/epose_40/models"),
+                dataset_root=osp.join(DATASETS_ROOT, "custom/cifarelli_DS/"),
+                models_root=osp.join(DATASETS_ROOT, "custom/cifarelli_DS/models"),
                 objs=[obj],  # only this obj
-                ann_files=ann_files,
-                image_prefixes=[osp.join(DATASETS_ROOT, "custom/epose_40/test/{:06d}").format(ref.epose_full.obj2id[obj])],
+                ann_file=ann_files,
+                folder_prefixes=[
+                    osp.join(DATASETS_ROOT, "custom/cifarelli_DS/test/{:06d}").format(ref.epose_full.obj2id[_obj])
+                    for _obj in Epose__OBJECTS
+                ],
+                image_prefix="custom/cifarelli_DS/rgb/",
                 xyz_prefixes=[
-                    osp.join(DATASETS_ROOT, "custom/epose_40/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[obj]))
+                    osp.join(DATASETS_ROOT, "custom/cifarelli_DS/test/xyz_crop/{:06d}".format(ref.epose_full.obj2id[_obj]))
+                    for _obj in Epose__OBJECTS
                 ],
                 scale_to_meter=0.001,
                 with_masks=True,  # (load masks but may not use it)
@@ -542,8 +370,8 @@ for obj in ref.epose_full.objects:
                 cache_dir=osp.join(PROJ_ROOT, ".cache"),
                 use_cache=True,
                 num_to_load=-1,
-                filter_invalid=filter_invalid,
                 filter_scene=True,
+                filter_invalid=True,
                 ref_key="epose_full",
             )
 
