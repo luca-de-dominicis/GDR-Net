@@ -1,15 +1,14 @@
 _base_ = ["../../_base_/gdrn_base.py"]
 SEED = 0
-OUTPUT_DIR = "output/gdrn/epose/config_epose_48_s0_sym_r32_var_cam_standardsegmented_positiveshift"
+OUTPUT_DIR = "output/gdrn/epose/config_epose_48_s0_sym_r32_40_segmented_no_aug"
 INPUT = dict(
     SEGMENT=True,
     BLACK_PAD=False,
     RND_BG=False,
-    SCALEPOS=True,
+    SCALEPOS = False,
     DZI_PAD_SCALE=1,
-    DZI_SCALE_RATIO=0.25,  # wh scale
+    DZI_SCALE_RATIO=0,  # wh scale
     DZI_SHIFT_RATIO=0,  # center shift
-    CHANGE_BG_PROB=0.5,
     COLOR_AUG_PROB=0.0,
     COLOR_AUG_TYPE="code",
     COLOR_AUG_CODE=(
@@ -39,8 +38,8 @@ SOLVER = dict(
 )
 
 DATASETS = dict(
-    TRAIN=("epose_train_varcam",), # TODO: MODIFY THE SECOND TRAIN SET
-    TEST=("epose_test_varcam",),
+    TRAIN=("epose_train_40",), # TODO: MODIFY THE SECOND TRAIN SET
+    TEST=("epose_test_40",),
     # DET_FILES_TEST=("datasets/custom/epose/test/test_bboxes/bbox_faster_all.json",), TODO: GENERATE FILE USING YOLO ?
     SYM_OBJS=["ugello_l80_90", "dado_m5", "vite_65"],
 )
