@@ -148,8 +148,6 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
             logging.getLogger(__name__).info("Color augmnetation used in training: " + str(self.augmentation[-1]))
         # fmt: off
         self.img_format = cfg.INPUT.FORMAT  # default BGR
-        self.with_depth = cfg.INPUT.WITH_DEPTH
-        self.aug_depth = cfg.INPUT.AUG_DEPTH
         # NOTE: color augmentation config
         self.color_aug_prob = cfg.INPUT.COLOR_AUG_PROB
         self.color_aug_type = cfg.INPUT.COLOR_AUG_TYPE
@@ -507,6 +505,7 @@ class GDRN_DatasetFromList(Base_DatasetFromList):
 
                 roi_img = self.normalize_image(cfg, roi_img)
                 roi_infos["roi_img"].append(roi_img.astype("float32"))
+
 
                 # roi_coord_2d
                 roi_coord_2d = crop_resize_by_warp_affine(

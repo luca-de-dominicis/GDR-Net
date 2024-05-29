@@ -49,8 +49,6 @@ class Base_DatasetFromList(data.Dataset):
         """
         # fmt: off
         self.img_format = cfg.INPUT.FORMAT  # default BGR
-        self.with_depth = cfg.INPUT.WITH_DEPTH
-        self.aug_depth = cfg.INPUT.AUG_DEPTH
         # NOTE: color augmentation config
         self.color_aug_prob = cfg.INPUT.COLOR_AUG_PROB
         self.color_aug_type = cfg.INPUT.COLOR_AUG_TYPE
